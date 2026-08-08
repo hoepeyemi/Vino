@@ -1,0 +1,30 @@
+{
+  "name": "vino-contracts",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "build": "hardhat compile",
+    "clean": "hardhat clean",
+    "test": "hardhat test",
+    "deploy:local": "hardhat run scripts/deploy.js --network hardhat",
+    "deploy:factory": "hardhat run scripts/deploy-factory.js --network hardhat",
+    "deploy:mock-aave": "hardhat run scripts/deploy-mock-aave.js --network hardhat",
+    "deploy:monad-testnet": "node scripts/select-monad-rpc.js && hardhat run scripts/deploy-multichain.js --network monadTestnet",
+    "verify:monad-testnet": "node scripts/verify-monad-testnet.js",
+    "deploy:monad": "hardhat run scripts/deploy-monad.js --network monadTestnet",
+    "deploy:multichain": "hardhat run scripts/deploy-multichain.js --network hardhat",
+    "oracle:activate-fallback": "hardhat run scripts/activate-oracle-fallback.js --network monadTestnet",
+    "authorize-agent": "hardhat run scripts/authorize-agent.js --network monadTestnet",
+    "relay-kyb-approval": "hardhat run scripts/relay-kyb-approval.js --network monadTestnet",
+    "generate-apass": "hardhat run scripts/generate-apass.js"
+  },
+  "devDependencies": {
+    "@nomicfoundation/hardhat-chai-matchers": "^2.1.0",
+    "@nomicfoundation/hardhat-ethers": "^3.0.6",
+    "@openzeppelin/contracts": "^5.2.0",
+    "@pythnetwork/pyth-sdk-solidity": "^4.0.0",
+    "chai": "^4.5.0",
+    "ethers": "^6.13.4",
+    "hardhat": "^2.22.19"
+  }
+}

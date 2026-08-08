@@ -1,0 +1,16 @@
+{
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "framework": "nextjs",
+  "installCommand": "pnpm install --no-frozen-lockfile",
+  "buildCommand": "next build",
+  "devCommand": "next dev",
+  "regions": ["iad1"],
+  "env": {
+    "NEXT_PUBLIC_INVOICE_NFT_ADDRESS": "0x827f01e7c3111cbB7b690E12B365eC0E14b144f6",
+    "NEXT_PUBLIC_YIELD_VAULT_ADDRESS": "0xd4DE5d9DC3fFd4c728dE13aaE57C74628cd441b5",
+    "NEXT_PUBLIC_AGENT_ROUTER_ADDRESS": "0x410494FC48f1cC24904fC3cc57F608ba498b12EA",
+    "NEXT_PUBLIC_CHAIN_ID": "10143",
+    "NEXT_PUBLIC_NETWORK_MODE": "testnet",
+    "NEXT_PUBLIC_AGENT_WS_URL": "wss://vino-agent.fly.dev"
+  }
+}

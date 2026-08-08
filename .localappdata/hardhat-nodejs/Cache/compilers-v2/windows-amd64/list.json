@@ -1,0 +1,17 @@
+{
+  "builds": [
+    {
+      "path": "solc.exe",
+      "version": "0.8.26",
+      "build": "local",
+      "longVersion": "0.8.26",
+      "keccak256": "0x0",
+      "urls": [],
+      "platform": "windows-amd64"
+    }
+  ],
+  "releases": {
+    "0.8.26": "solc.exe"
+  },
+  "latestRelease": "0.8.26"
+}

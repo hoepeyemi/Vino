@@ -1,0 +1,18 @@
+{
+  "network": "monadTestnet",
+  "chainId": 10143,
+  "deployedAt": "2026-07-30T06:07:36.223Z",
+  "deployer": "0x9404966338eB27aF420a952574d777598Bbb58c4",
+  "mockCVI": "0x98DbA1d179b013342C2f63Ef551Cf72de4bb64e3",
+  "invoiceNFT": "0x827f01e7c3111cbB7b690E12B365eC0E14b144f6",
+  "yieldVault": "0xd4DE5d9DC3fFd4c728dE13aaE57C74628cd441b5",
+  "privacyRegistry": "0x6872DC335eDF9A1525b005c38820641AdF78d9A1",
+  "agentRouter": "0x410494FC48f1cC24904fC3cc57F608ba498b12EA",
+  "mockOracle": "0x70231d59379687CaBab203b99481baC7300a19ca",
+  "cleanverse": {
+    "cviGateEnabled": true,
+    "cviContract": "0x98DbA1d179b013342C2f63Ef551Cf72de4bb64e3",
+    "module": "A-Pass Management (API v5.6)",
+    "note": "MockCVI is used on Monad testnet. On mainnet, replace with the real Cleanverse on-chain CVI once deployed on Monad mainnet."
+  }
+}

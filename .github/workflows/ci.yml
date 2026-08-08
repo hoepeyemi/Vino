@@ -1,0 +1,227 @@
+name: CI / CD
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+# ──────────────────────────────────────────────────────────────────────────────
+# Job 1: Lint, typecheck, test
+# ──────────────────────────────────────────────────────────────────────────────
+jobs:
+  test:
+    name: Test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: pnpm
+          cache-dependency-path: pnpm-lock.yaml
+
+      - name: Install dependencies
+        run: pnpm install --no-frozen-lockfile
+
+      - name: Typecheck agent
+        run: cd agent && pnpm tsc --noEmit
+
+      - name: Test agent
+        run: cd agent && pnpm test
+
+      - name: Build agent (smoke test)
+        run: cd agent && pnpm build
+
+# ──────────────────────────────────────────────────────────────────────────────
+# Job 2: Build Docker images and push to Docker Hub (push to main only)
+# ──────────────────────────────────────────────────────────────────────────────
+  build-and-push:
+    name: Build & Push Images
+    needs: test
+    runs-on: ubuntu-latest
+    if: github.event_name == 'push'
+    env:
+      DOCKER_USERNAME: ${{ secrets.DOCKER_USERNAME }}
+      APP_IMAGE: ${{ secrets.DOCKER_USERNAME }}/vino-app:latest
+      AGENT_IMAGE: ${{ secrets.DOCKER_USERNAME }}/vino-agent:latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Login to Docker Hub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKER_USERNAME }}
+          password: ${{ secrets.DOCKER_PASSWORD }}
+
+      - name: Build and push app image
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: Dockerfile.web
+          push: true
+          tags: ${{ env.APP_IMAGE }}
+          cache-from: type=gha,scope=vino-app
+          cache-to: type=gha,mode=max,scope=vino-app
+          # Contract addresses are baked as real values in Dockerfile.web.
+          # Three server-specific vars (WS_URL, APP_URL, WC_PROJECT_ID) use
+          # placeholder strings replaced by docker-entrypoint.sh at startup.
+
+      - name: Build and push agent image
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: Dockerfile.mcp
+          push: true
+          tags: ${{ env.AGENT_IMAGE }}
+          cache-from: type=gha,scope=vino-agent
+          cache-to: type=gha,mode=max,scope=vino-agent
+
+# ──────────────────────────────────────────────────────────────────────────────
+# Job 3: Deploy both containers to Ubuntu server
+# ──────────────────────────────────────────────────────────────────────────────
+  deploy:
+    name: Deploy to Ubuntu Server
+    needs: build-and-push
+    runs-on: ubuntu-latest
+    if: github.event_name == 'push'
+    env:
+      APP_IMAGE: ${{ secrets.DOCKER_USERNAME }}/vino-app:latest
+      AGENT_IMAGE: ${{ secrets.DOCKER_USERNAME }}/vino-agent:latest
+
+    steps:
+      - name: Deploy via SSH
+        uses: appleboy/ssh-action@v1.2.0
+        with:
+          host: ${{ secrets.SSH_HOST }}
+          username: ${{ secrets.SSH_USERNAME }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          envs: APP_IMAGE,AGENT_IMAGE
+          script: |
+            set -e
+            echo "=== Deployment started: $(date -u '+%Y-%m-%d %H:%M:%S UTC') ==="
+
+            APP_DIR="$HOME/vino"
+            APP_ENV=$APP_DIR/.env.app
+            AGENT_ENV=$APP_DIR/.env.agent
+
+            # Validate env files
+            if [ ! -f "$APP_ENV" ]; then
+              echo "ERROR: Missing app env file: $APP_ENV"
+              exit 1
+            fi
+            if [ ! -f "$AGENT_ENV" ]; then
+              echo "ERROR: Missing agent env file: $AGENT_ENV"
+              exit 1
+            fi
+
+            # Ensure Docker network exists
+            docker network create vino-net 2>/dev/null || true
+
+            # ── Pull latest images ─────────────────────────────────────────
+            echo "Pulling images..."
+            docker pull "$APP_IMAGE"
+            docker pull "$AGENT_IMAGE"
+
+            # ── Deploy agent first (app depends on it) ─────────────────────
+            echo "Deploying agent..."
+            docker stop vino-agent 2>/dev/null || true
+            docker rm   vino-agent 2>/dev/null || true
+            mkdir -p "$HOME/vino/agent-data"
+            docker run -d \
+              --name vino-agent \
+              --restart unless-stopped \
+              --network vino-net \
+              -p 8080:8080 \
+              --env-file "$AGENT_ENV" \
+              -v "$HOME/vino/agent-data:/app/agent/data" \
+              "$AGENT_IMAGE"
+
+            # Wait for agent to become healthy (max 2 min)
+            echo "Waiting for agent to become healthy..."
+            for i in $(seq 1 24); do
+              if curl -fsS http://127.0.0.1:8080/health >/dev/null 2>&1; then
+                echo "Agent healthy after $((i * 5))s"
+                break
+              fi
+              if [ "$i" -eq 24 ]; then
+                echo "ERROR: Agent did not become healthy in 120s"
+                docker logs --tail 100 vino-agent || true
+                exit 1
+              fi
+              sleep 5
+            done
+
+            # ── Deploy app ─────────────────────────────────────────────────
+            echo "Deploying app..."
+            docker stop vino-app 2>/dev/null || true
+            docker rm   vino-app 2>/dev/null || true
+            docker run -d \
+              --name vino-app \
+              --restart unless-stopped \
+              --network vino-net \
+              -p 3000:3000 \
+              --env-file "$APP_ENV" \
+              "$APP_IMAGE"
+
+            # Wait for app to become healthy (max 2 min)
+            echo "Waiting for app to become healthy..."
+            for i in $(seq 1 24); do
+              if curl -fsS http://127.0.0.1:3000/health >/dev/null 2>&1; then
+                echo "App healthy after $((i * 5))s"
+                break
+              fi
+              if [ "$i" -eq 24 ]; then
+                echo "ERROR: App did not become healthy in 120s"
+                docker logs --tail 100 vino-app || true
+                exit 1
+              fi
+              sleep 5
+            done
+
+            # ── Cleanup old images ─────────────────────────────────────────
+            docker image prune -f
+
+            # ── Final status ───────────────────────────────────────────────
+            echo ""
+            echo "=== Running containers ==="
+            docker ps --filter "name=vino" --format "table {{.Names}}\t{{.Status}}\t{{.Ports}}"
+            echo ""
+            echo "=== Deployment complete: $(date -u '+%Y-%m-%d %H:%M:%S UTC') ==="
+
+      - name: Post-deploy health check
+        uses: appleboy/ssh-action@v1.2.0
+        with:
+          host: ${{ secrets.SSH_HOST }}
+          username: ${{ secrets.SSH_USERNAME }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          script: |
+            set -e
+            echo "=== Post-deploy verification ==="
+
+            for svc in vino-app vino-agent; do
+              status=$(docker inspect "$svc" --format='{{.State.Status}}' 2>/dev/null || echo "not found")
+              if [ "$status" != "running" ]; then
+                echo "FAIL: $svc is $status"
+                docker logs --tail 50 "$svc" 2>/dev/null || true
+                exit 1
+              fi
+              echo "OK: $svc is running"
+              docker inspect "$svc" --format='  Started: {{.State.StartedAt}}'
+              docker port "$svc"
+            done
+
+            echo "All services healthy."

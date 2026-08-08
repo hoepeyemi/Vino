@@ -1,0 +1,298 @@
+// WebSocket server for streaming agent thoughts to frontend
+
+import { WebSocketServer, WebSocket } from 'ws';
+import { createServer, IncomingMessage, ServerResponse } from 'http';
+import { AgentThought, WebSocketMessage, MemoryEventMessage } from './types.js';
+
+// Heartbeat configuration
+const HEARTBEAT_INTERVAL_MS = 30000; // 30 seconds
+const CLIENT_TIMEOUT_MS = 60000; // 60 seconds without pong = dead
+
+// Authentication token (optional - if set, clients must provide it)
+const AUTH_TOKEN = process.env.WS_AUTH_TOKEN || null;
+
+// Validate client authentication
+function isAuthorized(req: IncomingMessage): boolean {
+  // If no auth token configured, allow all connections (development mode)
+  if (!AUTH_TOKEN) {
+    return true;
+  }
+
+  // Check for token in query string or header
+  const url = new URL(req.url || '', `http://${req.headers.host}`);
+  const queryToken = url.searchParams.get('token');
+  const headerToken = req.headers['x-auth-token'] as string | undefined;
+
+  return queryToken === AUTH_TOKEN || headerToken === AUTH_TOKEN;
+}
+
+interface ClientInfo {
+  ws: WebSocket;
+  isAlive: boolean;
+  lastPong: number;
+}
+
+export class AgentWebSocket {
+  private wss: WebSocketServer | null = null;
+  private httpServer: ReturnType<typeof createServer> | null = null;
+  private clients: Map<WebSocket, ClientInfo> = new Map();
+  private messageQueue: WebSocketMessage[] = [];
+  private isRunning = false;
+  private heartbeatInterval: NodeJS.Timeout | null = null;
+  private statusCallback: (() => { running: boolean; connectedClients: number }) | null = null;
+
+  constructor(private port: number = 8080) {}
+
+  // Allow agent to register a status callback for health endpoint
+  setStatusCallback(cb: () => { running: boolean; connectedClients: number }): void {
+    this.statusCallback = cb;
+  }
+
+  start(): void {
+    if (this.isRunning) return;
+
+    // Create HTTP server for health checks + WebSocket upgrades
+    this.httpServer = createServer((req: IncomingMessage, res: ServerResponse) => {
+      if (req.url === '/health') {
+        const status = this.statusCallback?.() || { running: this.isRunning, connectedClients: this.clients.size };
+        res.writeHead(status.running ? 200 : 503, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({
+          status: status.running ? 'healthy' : 'unhealthy',
+          clients: status.connectedClients,
+          uptime: process.uptime(),
+        }));
+      } else {
+        res.writeHead(404);
+        res.end();
+      }
+    });
+
+    // Attach WebSocket to the HTTP server (shares the same port)
+    this.wss = new WebSocketServer({ server: this.httpServer });
+    this.httpServer.listen(this.port);
+    this.isRunning = true;
+
+    console.log(`🔌 WebSocket + Health server on port ${this.port}`);
+
+    this.wss.on('connection', (ws, req) => {
+      const clientIp = req.socket.remoteAddress;
+
+      // Check authentication if enabled
+      if (!isAuthorized(req)) {
+        console.warn(`📡 Unauthorized connection attempt from ${clientIp}`);
+        ws.close(4001, 'Unauthorized');
+        return;
+      }
+
+      console.log(`📡 Client connected from ${clientIp}`);
+
+      // Register client with heartbeat info
+      const clientInfo: ClientInfo = {
+        ws,
+        isAlive: true,
+        lastPong: Date.now(),
+      };
+      this.clients.set(ws, clientInfo);
+
+      // Send initial status
+      this.sendToClient(ws, {
+        type: 'status',
+        payload: { status: 'connected' },
+      });
+
+      // Send any queued messages
+      this.messageQueue.forEach((msg) => this.sendToClient(ws, msg));
+
+      // Handle pong responses
+      ws.on('pong', () => {
+        const info = this.clients.get(ws);
+        if (info) {
+          info.isAlive = true;
+          info.lastPong = Date.now();
+        }
+      });
+
+      ws.on('close', () => {
+        console.log(`📡 Client disconnected from ${clientIp}`);
+        this.clients.delete(ws);
+      });
+
+      ws.on('error', (error) => {
+        console.error('WebSocket error:', error);
+        this.clients.delete(ws);
+      });
+
+      // Handle incoming messages (for future expansion)
+      ws.on('message', (data) => {
+        try {
+          const message = JSON.parse(data.toString());
+          this.handleClientMessage(ws, message);
+        } catch (error) {
+          // Log parse errors with details for debugging
+          console.error('Failed to parse WebSocket message:', error instanceof Error ? error.message : 'Unknown parse error');
+          console.warn('Raw message that failed to parse:', data.toString().slice(0, 100));
+          this.sendToClient(ws, {
+            type: 'error',
+            payload: {
+              type: 'error',
+              tokenId: 'system',
+              message: 'Invalid message format - could not parse JSON',
+              timestamp: Date.now(),
+            },
+          });
+        }
+      });
+    });
+
+    this.wss.on('error', (error: Error) => {
+      console.error('WebSocket server error:', error);
+    });
+
+    // Start heartbeat interval
+    this.startHeartbeat();
+  }
+
+  private startHeartbeat(): void {
+    this.heartbeatInterval = setInterval(() => {
+      const now = Date.now();
+
+      this.clients.forEach((info, ws) => {
+        // Check if client hasn't responded in too long
+        if (now - info.lastPong > CLIENT_TIMEOUT_MS) {
+          console.log(`📡 Client timed out (no pong for ${CLIENT_TIMEOUT_MS}ms), disconnecting`);
+          ws.terminate();
+          this.clients.delete(ws);
+          return;
+        }
+
+        // Check if last ping wasn't acknowledged
+        if (!info.isAlive) {
+          console.log('📡 Client missed heartbeat, disconnecting');
+          ws.terminate();
+          this.clients.delete(ws);
+          return;
+        }
+
+        // Send ping
+        info.isAlive = false;
+        ws.ping();
+      });
+    }, HEARTBEAT_INTERVAL_MS);
+  }
+
+  stop(): void {
+    if (!this.isRunning) return;
+
+    if (this.heartbeatInterval) {
+      clearInterval(this.heartbeatInterval);
+      this.heartbeatInterval = null;
+    }
+
+    this.clients.forEach((info) => {
+      info.ws.close();
+    });
+    this.clients.clear();
+
+    this.wss?.close();
+    this.httpServer?.close();
+    this.isRunning = false;
+
+    console.log('🔌 WebSocket server stopped');
+  }
+
+  private handleClientMessage(ws: WebSocket, message: Record<string, unknown>): void {
+    if (message.type === 'requestAnalysis' && message.tokenId) {
+      const tokenId = message.tokenId;
+      // Validate: must be a short numeric/alphanumeric string (contract token IDs are integers)
+      if (typeof tokenId !== 'string' || !/^\d{1,10}$/.test(tokenId)) return;
+      this.onAnalysisRequest?.(tokenId);
+    }
+  }
+
+  // Callback for analysis requests
+  onAnalysisRequest?: (tokenId: string) => void;
+
+  broadcast(message: WebSocketMessage): void {
+    const data = JSON.stringify(message);
+
+    this.clients.forEach((info, ws) => {
+      if (info.ws.readyState === WebSocket.OPEN) {
+        try {
+          info.ws.send(data);
+        } catch (err) {
+          // Socket may have transitioned to CLOSING between the readyState check and send
+          console.warn('WebSocket send failed, removing client:', (err as Error).message);
+          this.clients.delete(ws);
+        }
+      }
+    });
+
+    // Only replay non-sensitive message types to new connections.
+    // thought / decision / execution payloads contain invoice IDs, risk scores,
+    // and tx hashes that should not be disclosed to late-joining clients.
+    const REPLAYABLE = new Set(['status', 'memory']);
+    if (REPLAYABLE.has(message.type)) {
+      this.messageQueue.push(message);
+      if (this.messageQueue.length > 50) {
+        this.messageQueue.shift();
+      }
+    }
+  }
+
+  private sendToClient(ws: WebSocket, message: WebSocketMessage): void {
+    if (ws.readyState === WebSocket.OPEN) {
+      try {
+        ws.send(JSON.stringify(message));
+      } catch (err) {
+        // Socket may have transitioned to CLOSING between the readyState check and send
+        console.warn('WebSocket sendToClient failed, removing client:', (err as Error).message);
+        this.clients.delete(ws);
+      }
+    }
+  }
+
+  broadcastThought(thought: AgentThought): void {
+    this.broadcast({
+      type: 'thought',
+      payload: thought,
+    });
+  }
+
+  broadcastExecution(tokenId: string, success: boolean, txHash?: string): void {
+    this.broadcast({
+      type: 'execution',
+      payload: {
+        type: 'execution',
+        tokenId,
+        message: success
+          ? `Strategy change executed successfully${txHash ? ` (tx: ${txHash.slice(0, 10)}...)` : ''}`
+          : 'Strategy change execution failed',
+        timestamp: Date.now(),
+        data: { success, txHash },
+      },
+    });
+  }
+
+  broadcastError(tokenId: string, error: string): void {
+    this.broadcast({
+      type: 'error',
+      payload: {
+        type: 'error',
+        tokenId,
+        message: error,
+        timestamp: Date.now(),
+      },
+    });
+  }
+
+  broadcastMemoryEvent(event: MemoryEventMessage): void {
+    this.broadcast({
+      type: 'memory',
+      payload: event,
+    });
+  }
+
+  getConnectedClients(): number {
+    return this.clients.size;
+  }
+}

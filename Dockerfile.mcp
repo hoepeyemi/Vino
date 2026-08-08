@@ -1,0 +1,64 @@
+FROM node:20-slim AS base
+
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    ca-certificates \
+  && rm -rf /var/lib/apt/lists/*
+
+RUN npm install -g pnpm@10
+
+WORKDIR /repo
+ENV CI=true
+
+# Install deps first (layer-cached until lockfile changes)
+COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
+COPY app/package.json ./app/package.json
+COPY agent/package.json ./agent/package.json
+COPY contracts/package.json ./contracts/package.json
+
+RUN pnpm install --frozen-lockfile --filter vino-agent...
+
+# Copy source and build
+COPY . .
+
+WORKDIR /repo/agent
+
+RUN pnpm build
+
+# ── Production image ──────────────────────────────────────────────────────────
+FROM node:20-slim AS runner
+
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    ca-certificates wget \
+  && rm -rf /var/lib/apt/lists/*
+
+RUN npm install -g pnpm@10
+
+WORKDIR /app/agent
+
+ENV NODE_ENV=production
+ENV WS_PORT=8080
+
+# Install production deps only
+COPY package.json pnpm-lock.yaml pnpm-workspace.yaml /app/
+COPY app/package.json /app/app/package.json
+COPY agent/package.json /app/agent/package.json
+COPY contracts/package.json /app/contracts/package.json
+
+RUN pnpm install --prod --frozen-lockfile --filter vino-agent...
+
+COPY --from=base /repo/agent/dist ./dist
+COPY --from=base /repo/contracts/deployments /app/contracts/deployments
+
+# Non-root user with write access to the data directory
+RUN groupadd --system nodejs && useradd --system --gid nodejs agentuser \
+  && mkdir -p /app/agent/data \
+  && chown -R agentuser:nodejs /app/agent/data
+
+USER agentuser
+
+EXPOSE 8080
+
+HEALTHCHECK --interval=30s --timeout=5s --start-period=40s --retries=3 \
+  CMD wget -qO- http://127.0.0.1:8080/health >/dev/null 2>&1 || exit 1
+
+CMD ["node", "dist/index.js"]

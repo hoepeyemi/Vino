@@ -1,0 +1,216 @@
+"use client"
+
+import { useState, useEffect, useRef } from "react"
+import { Wallet, Plus, Bot, Menu, X, ChevronDown } from "lucide-react"
+import Link from "next/link"
+import { useAccount, useConnect, useDisconnect, useChainId, useSwitchChain } from 'wagmi'
+import { injected } from 'wagmi/connectors'
+import { toast } from "sonner"
+import { usePathname } from "next/navigation"
+import { getChainMeta, areContractsDeployed } from '@/lib/wagmi'
+
+export function DashboardHeader() {
+  const [mounted, setMounted] = useState(false)
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
+  const [chainMenuOpen, setChainMenuOpen] = useState(false)
+  const { address, isConnected } = useAccount()
+  const { connect, isPending } = useConnect()
+  const { disconnect } = useDisconnect()
+  const chainId = useChainId()
+  const { chains, switchChain } = useSwitchChain()
+  const previouslyConnected = useRef(false)
+  const pathname = usePathname()
+  const chainMenuRef = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    setMounted(true)
+  }, [])
+
+  useEffect(() => {
+    if (!mounted) return
+
+    if (isConnected && address && !previouslyConnected.current) {
+      const meta = getChainMeta(chainId)
+      toast.success("Wallet connected!", {
+        description: `${address.slice(0, 6)}...${address.slice(-4)} on ${meta?.name || 'Unknown Chain'}`,
+      })
+      previouslyConnected.current = true
+    } else if (!isConnected && previouslyConnected.current) {
+      toast.info("Wallet disconnected", {
+        description: "Connect your wallet to use vino",
+      })
+      previouslyConnected.current = false
+    }
+  }, [isConnected, address, mounted])
+
+  useEffect(() => {
+    setMobileMenuOpen(false)
+    setChainMenuOpen(false)
+  }, [pathname])
+
+  // Close chain menu on click outside
+  useEffect(() => {
+    function handleClick(e: MouseEvent) {
+      if (chainMenuRef.current && !chainMenuRef.current.contains(e.target as Node)) {
+        setChainMenuOpen(false)
+      }
+    }
+    document.addEventListener('mousedown', handleClick)
+    return () => document.removeEventListener('mousedown', handleClick)
+  }, [])
+
+  const navLinks = [
+    { href: "/dashboard", label: "Portfolio" },
+    { href: "/dashboard/mint", label: "Mint" },
+    { href: "/dashboard/agent", label: "Agent" },
+  ]
+
+  const isActive = (href: string) => pathname === href
+
+  return (
+    <>
+      <header className="sticky top-0 z-50 border-b border-border bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
+        <div className="max-w-7xl mx-auto px-6 h-14 flex items-center justify-between">
+          {/* Left: Logo + Nav */}
+          <div className="flex items-center gap-8">
+            {/* Mobile Menu Button */}
+            <button
+              className="md:hidden p-2 -ml-2 hover:bg-muted rounded-md"
+              onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+              aria-label="Toggle menu"
+            >
+              {mobileMenuOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
+            </button>
+
+            <Link href="/" className="flex items-center gap-2">
+              <img src="/logo.svg" alt="vino" className="w-8 h-8" />
+              <span className="font-display font-semibold text-lg tracking-tight hidden sm:inline">vino</span>
+            </Link>
+
+            {/* Desktop Nav */}
+            <nav className="hidden md:flex items-center gap-1">
+              {navLinks.map((link) => (
+                <Link
+                  key={link.href}
+                  href={link.href}
+                  className={`px-3 py-1.5 text-sm font-medium rounded-md transition-colors ${
+                    isActive(link.href)
+                      ? 'bg-muted text-foreground'
+                      : 'text-muted-foreground hover:text-foreground'
+                  }`}
+                >
+                  {link.label}
+                </Link>
+              ))}
+            </nav>
+          </div>
+
+          {/* Right: Actions */}
+          <div className="flex items-center gap-3">
+            {/* Chain Switcher */}
+            <div className="relative hidden sm:block" ref={chainMenuRef}>
+              <button
+                onClick={() => setChainMenuOpen(!chainMenuOpen)}
+                className="flex items-center gap-1.5 px-2.5 py-1.5 bg-muted rounded-md text-xs font-mono hover:bg-muted/80 transition-colors"
+              >
+                <span className={`w-1.5 h-1.5 rounded-full ${areContractsDeployed(chainId) ? 'bg-green-500' : 'bg-yellow-500'}`} />
+                {getChainMeta(chainId)?.shortName || `Chain ${chainId}`}
+                <ChevronDown className="w-3 h-3 text-muted-foreground" />
+              </button>
+              {chainMenuOpen && (
+                <div className="absolute right-0 top-full mt-1 w-48 bg-background border border-border rounded-md shadow-lg py-1 z-50">
+                  {chains.map((chain) => {
+                    const meta = getChainMeta(chain.id)
+                    const deployed = areContractsDeployed(chain.id)
+                    return (
+                      <button
+                        key={chain.id}
+                        onClick={() => {
+                          switchChain({ chainId: chain.id })
+                          setChainMenuOpen(false)
+                        }}
+                        className={`w-full text-left px-3 py-2 text-xs font-mono hover:bg-muted transition-colors flex items-center justify-between ${
+                          chain.id === chainId ? 'bg-muted text-foreground' : 'text-muted-foreground'
+                        }`}
+                      >
+                        <span className="flex items-center gap-2">
+                          <span className={`w-1.5 h-1.5 rounded-full ${deployed ? 'bg-green-500' : 'bg-yellow-500'}`} />
+                          {meta?.name || chain.name}
+                        </span>
+                        <span className="text-[10px] opacity-60">{meta?.gasLabel || ''}</span>
+                      </button>
+                    )
+                  })}
+                </div>
+              )}
+            </div>
+
+            {/* Wallet */}
+            {mounted && isConnected && address ? (
+              <button
+                onClick={() => disconnect()}
+                className="flex items-center gap-2 px-3 py-1.5 bg-muted rounded-md text-sm font-mono hover:bg-muted/80 transition-colors"
+                suppressHydrationWarning
+              >
+                <Wallet className="w-4 h-4 text-muted-foreground" />
+                <span className="hidden sm:inline">{address.slice(0, 6)}...{address.slice(-4)}</span>
+                <span className="sm:hidden">{address.slice(0, 4)}...{address.slice(-2)}</span>
+              </button>
+            ) : (
+              <button
+                onClick={() => connect({ connector: injected() })}
+                disabled={!mounted || isPending}
+                className="flex items-center gap-2 px-3 py-1.5 border border-border rounded-md text-sm font-medium hover:bg-muted transition-colors disabled:opacity-50"
+              >
+                <Wallet className="w-4 h-4" />
+                <span className="hidden sm:inline">{isPending ? 'Connecting...' : 'Connect'}</span>
+              </button>
+            )}
+
+            {/* Mint Button */}
+            <Link href="/dashboard/mint" className="btn-primary hidden sm:inline-flex items-center gap-2">
+              <Plus className="w-4 h-4" />
+              Mint
+            </Link>
+
+            {/* Agent Button (mobile) */}
+            <Link
+              href="/dashboard/agent"
+              className="md:hidden p-2 hover:bg-muted rounded-md"
+              aria-label="AI Agent"
+            >
+              <Bot className="w-5 h-5 text-muted-foreground" />
+            </Link>
+          </div>
+        </div>
+      </header>
+
+      {/* Mobile Navigation Menu */}
+      {mobileMenuOpen && (
+        <div className="md:hidden border-b border-border bg-background">
+          <nav className="max-w-7xl mx-auto px-6 py-3 space-y-1">
+            {navLinks.map((link) => (
+              <Link
+                key={link.href}
+                href={link.href}
+                className={`block px-3 py-2.5 rounded-md font-medium transition-colors ${
+                  isActive(link.href)
+                    ? 'bg-muted text-foreground'
+                    : 'text-muted-foreground hover:bg-muted/50 hover:text-foreground'
+                }`}
+              >
+                {link.label}
+              </Link>
+            ))}
+            <Link
+              href="/dashboard/mint"
+              className="block px-3 py-2.5 rounded-md font-medium text-primary bg-primary/10"
+            >
+              Mint Invoice
+            </Link>
+          </nav>
+        </div>
+      )}
+    </>
+  )
+}

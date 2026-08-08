@@ -1,0 +1,365 @@
+// SPDX-License-Identifier: MIT
+pragma solidity ^0.8.26;
+
+import "@openzeppelin/contracts/token/ERC721/ERC721.sol";
+import "@openzeppelin/contracts/token/ERC721/extensions/ERC721Enumerable.sol";
+import "@openzeppelin/contracts/access/Ownable.sol";
+import "./ICleanverseCVI.sol";
+
+/// @title VinoNFT - Tokenized Invoice as RWA
+/// @notice ERC721 representing tokenized invoices with privacy-preserving commitments
+/// @dev Invoice data is stored as commitments (hashes) for privacy - Part of vino Protocol
+contract InvoiceNFT is ERC721, ERC721Enumerable, Ownable {
+    // ============ Structs ============
+
+    struct Invoice {
+        bytes32 dataCommitment; // hash(invoiceData + salt) for privacy
+        bytes32 amountCommitment; // hash(amount + salt) for range proofs
+        uint256 dueDate; // Unix timestamp when invoice is due
+        uint256 createdAt; // When the invoice was tokenized
+        address issuer; // Original invoice issuer
+        InvoiceStatus status; // Current status
+        uint8 riskScore; // 0-100, set by oracle/agent
+        uint8 paymentProbability; // 0-100, set by oracle/agent
+    }
+
+    enum InvoiceStatus {
+        Active, // Invoice is active and can be used for yield
+        InYield, // Currently deposited in yield vault
+        Paid, // Invoice has been paid
+        Defaulted, // Invoice defaulted
+        Cancelled // Invoice was cancelled
+    }
+
+    // ============ State ============
+
+    uint256 private _nextTokenId;
+    mapping(uint256 => Invoice) public invoices;
+    mapping(uint256 => mapping(address => bool)) public revealAuthorized;
+
+    address public yieldVault;
+    address public agentRouter;
+    address public oracle;
+
+    ICleanverseCVI public cvi;
+    bool public cviGateEnabled;
+
+    // ============ Events ============
+
+    event InvoiceMinted(uint256 indexed tokenId, address indexed issuer, bytes32 dataCommitment, uint256 dueDate);
+
+    event InvoiceStatusUpdated(uint256 indexed tokenId, InvoiceStatus oldStatus, InvoiceStatus newStatus);
+
+    event RiskScoreUpdated(uint256 indexed tokenId, uint8 riskScore, uint8 paymentProbability);
+
+    event RevealAuthorized(uint256 indexed tokenId, address indexed authorizedAddress);
+
+    event InvoicePaid(uint256 indexed tokenId, address indexed payer, uint256 amount, uint256 timestamp);
+
+    // ============ Modifiers ============
+
+    modifier onlyYieldVault() {
+        require(msg.sender == yieldVault, "Only YieldVault");
+        _;
+    }
+
+    modifier onlyAgentOrOracle() {
+        require(msg.sender == agentRouter || msg.sender == oracle, "Only Agent or Oracle");
+        _;
+    }
+
+    modifier onlyVerifiedBusiness() {
+        if (cviGateEnabled && address(cvi) != address(0)) {
+            require(cvi.isVerified(msg.sender), "Cleanverse: KYB verification required");
+        }
+        _;
+    }
+
+    modifier onlyTokenOwner(uint256 tokenId) {
+        // Check issuer (original minter) rather than current ownerOf so that
+        // authorizeReveal still works when the NFT is held by the YieldVault
+        // after deposit — the issuer never changes once set at mint time.
+        require(invoices[tokenId].issuer == msg.sender, "Not token owner");
+        _;
+    }
+
+    // ============ Constructor ============
+
+    constructor() ERC721("Vino Invoice", "VINO") Ownable(msg.sender) {}
+
+    // ============ Admin Functions ============
+
+    function setYieldVault(address _yieldVault) external onlyOwner {
+        require(_yieldVault != address(0), "Invalid address: zero");
+        yieldVault = _yieldVault;
+    }
+
+    function setAgentRouter(address _agentRouter) external onlyOwner {
+        require(_agentRouter != address(0), "Invalid address: zero");
+        agentRouter = _agentRouter;
+    }
+
+    function setOracle(address _oracle) external onlyOwner {
+        require(_oracle != address(0), "Invalid address: zero");
+        oracle = _oracle;
+    }
+
+    function setCVI(address _cvi) external onlyOwner {
+        cvi = ICleanverseCVI(_cvi);
+    }
+
+    function setCVIGateEnabled(bool enabled) external onlyOwner {
+        cviGateEnabled = enabled;
+    }
+
+    // ============ Core Functions ============
+
+    /// @notice Mint a new invoice NFT
+    /// @param dataCommitment Hash of invoice data for privacy
+    /// @param amountCommitment Hash of amount for range proofs
+    /// @param dueDate Unix timestamp when invoice is due
+    /// @return tokenId The ID of the minted invoice
+    function mint(bytes32 dataCommitment, bytes32 amountCommitment, uint256 dueDate)
+        external
+        onlyVerifiedBusiness
+        returns (uint256 tokenId)
+    {
+        require(dueDate > block.timestamp, "Due date must be in future");
+        require(dataCommitment != bytes32(0), "Invalid data commitment");
+
+        tokenId = _nextTokenId++;
+
+        invoices[tokenId] = Invoice({
+            dataCommitment: dataCommitment,
+            amountCommitment: amountCommitment,
+            dueDate: dueDate,
+            createdAt: block.timestamp,
+            issuer: msg.sender,
+            status: InvoiceStatus.Active,
+            riskScore: 50, // Default middle score
+            paymentProbability: 50
+        });
+
+        // Use a plain mint so contract wallets and smart accounts can receive invoices.
+        _mint(msg.sender, tokenId);
+
+        emit InvoiceMinted(tokenId, msg.sender, dataCommitment, dueDate);
+    }
+
+    /// @notice Update invoice status (by YieldVault or token owner only)
+    /// @dev Removed contract owner from authorized callers for security
+    function updateStatus(uint256 tokenId, InvoiceStatus newStatus) external {
+        require(msg.sender == yieldVault || msg.sender == ownerOf(tokenId), "Not authorized");
+
+        Invoice storage invoice = invoices[tokenId];
+        InvoiceStatus oldStatus = invoice.status;
+        invoice.status = newStatus;
+
+        emit InvoiceStatusUpdated(tokenId, oldStatus, newStatus);
+    }
+
+    /// @notice Emergency status update (owner only, with restrictions)
+    /// @dev Can only set to Defaulted status for overdue invoices
+    function emergencyDefault(uint256 tokenId) external onlyOwner {
+        Invoice storage invoice = invoices[tokenId];
+        require(invoice.dueDate < block.timestamp, "Not overdue");
+        require(invoice.status != InvoiceStatus.Paid, "Already paid");
+
+        InvoiceStatus oldStatus = invoice.status;
+        invoice.status = InvoiceStatus.Defaulted;
+
+        emit InvoiceStatusUpdated(tokenId, oldStatus, InvoiceStatus.Defaulted);
+    }
+
+    /// @notice Update risk metrics (by oracle or agent)
+    function updateRiskMetrics(uint256 tokenId, uint8 riskScore, uint8 paymentProbability) external onlyAgentOrOracle {
+        require(riskScore <= 100, "Risk score > 100");
+        require(paymentProbability <= 100, "Payment probability > 100");
+
+        Invoice storage invoice = invoices[tokenId];
+        invoice.riskScore = riskScore;
+        invoice.paymentProbability = paymentProbability;
+
+        emit RiskScoreUpdated(tokenId, riskScore, paymentProbability);
+    }
+
+    /// @notice Authorize an address to receive invoice reveal
+    function authorizeReveal(uint256 tokenId, address authorized) external onlyTokenOwner(tokenId) {
+        revealAuthorized[tokenId][authorized] = true;
+        emit RevealAuthorized(tokenId, authorized);
+    }
+
+    /// @notice Verify a data commitment reveal
+    function verifyReveal(uint256 tokenId, bytes calldata invoiceData, bytes32 salt) external view returns (bool) {
+        bytes32 commitment = invoices[tokenId].dataCommitment;
+        bytes32 computed = keccak256(abi.encodePacked(invoiceData, salt));
+        return commitment == computed;
+    }
+
+    // ============ x402 Payment Functions ============
+
+    /// @notice Pay an invoice (x402 Payment Required flow)
+    /// @dev Accepts native currency payment and marks invoice as Paid
+    /// @param tokenId The invoice token ID to pay
+    function payInvoice(uint256 tokenId) external payable {
+        Invoice storage invoice = invoices[tokenId];
+
+        require(
+            invoice.status == InvoiceStatus.Active || invoice.status == InvoiceStatus.InYield, "Invoice not payable"
+        );
+        require(msg.value > 0, "Payment required");
+
+        // Mark as paid
+        InvoiceStatus oldStatus = invoice.status;
+        invoice.status = InvoiceStatus.Paid;
+
+        // Transfer payment to invoice owner
+        address owner = ownerOf(tokenId);
+        (bool success,) = payable(owner).call{value: msg.value}("");
+        require(success, "Payment transfer failed");
+
+        emit InvoiceStatusUpdated(tokenId, oldStatus, InvoiceStatus.Paid);
+        emit InvoicePaid(tokenId, msg.sender, msg.value, block.timestamp);
+    }
+
+    /// @notice Get payment details for an invoice (x402-style query)
+    /// @param tokenId The invoice token ID
+    /// @return isPaid Whether the invoice has been paid
+    /// @return owner The address to pay (invoice owner)
+    /// @return dueDate When payment is due
+    function getPaymentInfo(uint256 tokenId) external view returns (bool isPaid, address owner, uint256 dueDate) {
+        Invoice storage invoice = invoices[tokenId];
+        return (invoice.status == InvoiceStatus.Paid, ownerOf(tokenId), invoice.dueDate);
+    }
+
+    // ============ View Functions ============
+
+    function getInvoice(uint256 tokenId) external view returns (Invoice memory) {
+        return invoices[tokenId];
+    }
+
+    function getDaysUntilDue(uint256 tokenId) external view returns (int256) {
+        uint256 dueDate = invoices[tokenId].dueDate;
+        if (block.timestamp >= dueDate) {
+            return -int256((block.timestamp - dueDate) / 1 days);
+        }
+        return int256((dueDate - block.timestamp) / 1 days);
+    }
+
+    function isActive(uint256 tokenId) external view returns (bool) {
+        return invoices[tokenId].status == InvoiceStatus.Active;
+    }
+
+    /// @notice Check if an invoice is overdue
+    /// @param tokenId The invoice token ID
+    /// @return bool True if invoice is past due date
+    function isOverdue(uint256 tokenId) external view returns (bool) {
+        Invoice storage invoice = invoices[tokenId];
+        return block.timestamp > invoice.dueDate
+            && (invoice.status == InvoiceStatus.Active || invoice.status == InvoiceStatus.InYield);
+    }
+
+    /// @notice Mark an overdue invoice as defaulted (callable by anyone after grace period)
+    /// @param tokenId The invoice token ID
+    /// @param gracePeriodDays Days after due date before marking as defaulted
+    function markDefaulted(uint256 tokenId, uint256 gracePeriodDays) external {
+        Invoice storage invoice = invoices[tokenId];
+
+        require(invoice.status == InvoiceStatus.Active || invoice.status == InvoiceStatus.InYield, "Invoice not active");
+
+        uint256 gracePeriod = gracePeriodDays * 1 days;
+        require(block.timestamp > invoice.dueDate + gracePeriod, "Grace period not expired");
+
+        InvoiceStatus oldStatus = invoice.status;
+        invoice.status = InvoiceStatus.Defaulted;
+
+        emit InvoiceStatusUpdated(tokenId, oldStatus, InvoiceStatus.Defaulted);
+    }
+
+    function totalInvoices() external view returns (uint256) {
+        return _nextTokenId;
+    }
+
+    /// @notice Get active invoices with pagination to prevent DoS
+    /// @param offset Starting index
+    /// @param limit Maximum number of results (capped at 100)
+    /// @return activeIds Array of active invoice token IDs
+    /// @return total Total number of invoices (for pagination calculation)
+    function getActiveInvoicesPaginated(uint256 offset, uint256 limit)
+        external
+        view
+        returns (uint256[] memory activeIds, uint256 total)
+    {
+        total = _nextTokenId;
+        if (limit > 100) limit = 100; // Cap to prevent gas issues
+        if (offset >= total) return (new uint256[](0), total);
+
+        // Collect active invoices within range
+        uint256[] memory temp = new uint256[](limit);
+        uint256 count = 0;
+        uint256 skipped = 0;
+
+        for (uint256 i = 0; i < total && count < limit; i++) {
+            if (invoices[i].status == InvoiceStatus.Active || invoices[i].status == InvoiceStatus.InYield) {
+                if (skipped >= offset) {
+                    temp[count++] = i;
+                } else {
+                    skipped++;
+                }
+            }
+        }
+
+        // Trim array to actual size
+        activeIds = new uint256[](count);
+        for (uint256 i = 0; i < count; i++) {
+            activeIds[i] = temp[i];
+        }
+    }
+
+    /// @notice Get all active invoices (legacy - use paginated version for large datasets)
+    /// @dev Warning: May run out of gas with many invoices
+    function getActiveInvoices() external view returns (uint256[] memory) {
+        uint256 total = _nextTokenId;
+        uint256 activeCount = 0;
+
+        // Count active invoices
+        for (uint256 i = 0; i < total; i++) {
+            if (invoices[i].status == InvoiceStatus.Active || invoices[i].status == InvoiceStatus.InYield) {
+                activeCount++;
+            }
+        }
+
+        // Build array
+        uint256[] memory activeIds = new uint256[](activeCount);
+        uint256 index = 0;
+        for (uint256 i = 0; i < total; i++) {
+            if (invoices[i].status == InvoiceStatus.Active || invoices[i].status == InvoiceStatus.InYield) {
+                activeIds[index++] = i;
+            }
+        }
+
+        return activeIds;
+    }
+
+    // ============ Required Overrides ============
+
+    function _update(address to, uint256 tokenId, address auth)
+        internal
+        override(ERC721, ERC721Enumerable)
+        returns (address)
+    {
+        // Enforce CVI on transfers (not burns or yieldVault deposits)
+        if (cviGateEnabled && address(cvi) != address(0) && to != address(0) && to != yieldVault) {
+            require(cvi.isVerified(to), "Cleanverse: recipient KYB required");
+        }
+        return super._update(to, tokenId, auth);
+    }
+
+    function _increaseBalance(address account, uint128 value) internal override(ERC721, ERC721Enumerable) {
+        super._increaseBalance(account, value);
+    }
+
+    function supportsInterface(bytes4 interfaceId) public view override(ERC721, ERC721Enumerable) returns (bool) {
+        return super.supportsInterface(interfaceId);
+    }
+}

@@ -1,0 +1,27 @@
+services:
+  - type: web
+    name: vino-agent
+    env: node
+    region: oregon
+    plan: free
+    buildCommand: pnpm install && pnpm build
+    startCommand: pnpm start
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: WS_PORT
+        value: 8080
+      - key: MONAD_TESTNET_RPC_URL
+        value: https://testnet-rpc.monad.xyz
+      - key: INVOICE_NFT_ADDRESS
+        value: 0x827f01e7c3111cbB7b690E12B365eC0E14b144f6
+      - key: YIELD_VAULT_ADDRESS
+        value: 0xd4DE5d9DC3fFd4c728dE13aaE57C74628cd441b5
+      - key: AGENT_ROUTER_ADDRESS
+        value: 0x410494FC48f1cC24904fC3cc57F608ba498b12EA
+      - key: MOCK_ORACLE_ADDRESS
+        value: 0x70231d59379687CaBab203b99481baC7300a19ca
+      - key: AGENT_PRIVATE_KEY
+        sync: false  # Will be set via Render dashboard (sensitive)
+      - key: QWEN_API_KEY
+        sync: false  # Will be set via Render dashboard (sensitive)

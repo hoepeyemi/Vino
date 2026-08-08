@@ -1,0 +1,39 @@
+services:
+  vino-app:
+    image: ${DOCKER_USERNAME}/vino-app:latest
+    container_name: vino-app
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    env_file: .env.app
+    networks:
+      - vino-net
+    depends_on:
+      vino-agent:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://127.0.0.1:3000/health"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 40s
+
+  vino-agent:
+    image: ${DOCKER_USERNAME}/vino-agent:latest
+    container_name: vino-agent
+    restart: unless-stopped
+    ports:
+      - "8080:8080"
+    env_file: .env.agent
+    networks:
+      - vino-net
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://127.0.0.1:8080/health"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 40s
+
+networks:
+  vino-net:
+    driver: bridge

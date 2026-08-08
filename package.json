@@ -1,0 +1,33 @@
+{
+  "name": "vino",
+  "version": "1.0.0",
+  "description": "Turn Invoices into Yield. Automatically. Built for Cleanverse Build: Trusted Assets Hackathon on Monad.",
+  "private": true,
+  "workspaces": [
+    "app",
+    "agent",
+    "contracts"
+  ],
+  "scripts": {
+    "dev": "pnpm --parallel run dev",
+    "dev:app": "pnpm --filter vino-app dev",
+    "dev:agent": "pnpm --filter vino-agent dev",
+    "build": "pnpm --parallel run build",
+    "build:contracts": "npm --prefix contracts run build",
+    "docker:build:agent": "docker build -f Dockerfile.mcp -t vino-agent .",
+    "docker:build": "pnpm run docker:build:agent",
+    "test": "pnpm test:all",
+    "test:all": "pnpm test:contracts && pnpm test:agent",
+    "test:contracts": "npm --prefix contracts run test",
+    "test:agent": "pnpm --filter vino-agent test",
+    "typecheck": "pnpm --filter vino-app tsc --noEmit && pnpm --filter vino-agent tsc --noEmit",
+    "lint": "pnpm --filter vino-app lint && npm --prefix contracts run build",
+    "deploy:local": "npm --prefix contracts run deploy:local",
+    "deploy:factory": "npm --prefix contracts run deploy:factory",
+    "deploy:monad-testnet": "npm --prefix contracts run deploy:monad-testnet",
+    "verify:monad-testnet": "npm --prefix contracts run verify:monad-testnet"
+  },
+  "devDependencies": {
+    "puppeteer": "^24.34.0"
+  }
+}

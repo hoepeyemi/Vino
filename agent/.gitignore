@@ -1,0 +1,23 @@
+# Dependencies
+node_modules/
+
+# Build
+dist/
+
+# Environment
+.env
+.env.local
+
+# Logs
+*.log
+
+# Memory store — persisted locally, not committed
+data/l2-episodic.json
+data/l3-semantic.json
+
+# IDE
+.vscode/
+.idea/
+
+# OS
+.DS_Store
