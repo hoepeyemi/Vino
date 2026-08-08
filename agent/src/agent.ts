@@ -125,6 +125,10 @@ export class VinoAgent {
         console.warn(`⚠️  Agent ${agentAddress} is not authorized on AgentRouter`);
       } else {
         console.log(`✅ Agent ${agentAddress} is authorized`);
+        // Ensure AgentRouter.maxGasPrice is high enough for auto-execute to fire.
+        // On Monad testnet the base fee can exceed the contract's default 100 Gwei
+        // cap, causing recordDecision to silently skip the strategy change.
+        await this.blockchain.ensureRouterConfig();
       }
     } else {
       console.warn('⚠️  No private key — read-only mode');

@@ -12,8 +12,10 @@ const QWEN_TURBO_MODEL = process.env.QWEN_TURBO_MODEL || 'qwen-turbo';
 const TIMEOUT_MS = 30_000;
 const MAINTENANCE_TIMEOUT_MS = 20_000;
 
-const QWEN_EMBED_MODEL = process.env.QWEN_EMBED_MODEL || 'text-embedding-v2';
-const QWEN_EMBED_DIMS = 1536; // text-embedding-v2 output dimension
+// text-embedding-v2 is not included in Qwen free-tier plans.
+// text-embedding-v3 is the stable replacement: free quota, 1024-dim output.
+const QWEN_EMBED_MODEL = process.env.QWEN_EMBED_MODEL || 'text-embedding-v3';
+const QWEN_EMBED_DIMS = 1024; // text-embedding-v3/v4 output dimension
 
 interface QwenMessage {
   role: 'system' | 'user' | 'assistant';
@@ -41,6 +43,15 @@ export class LLMService {
   private callTimestamps: number[] = [];
   private readonly rateLimitWindowMs = 60_000;
   private readonly maxCallsPerWindow = 30;
+
+  // Circuit-breaker for the embedding API.
+  // After EMBED_FAIL_THRESHOLD consecutive 4xx/auth failures we stop calling
+  // the endpoint for EMBED_BACKOFF_MS (10 min) before trying once more.
+  // This prevents log spam when the API key lacks embedding access.
+  private embedFailCount = 0;
+  private embedCircuitOpenUntil = 0;
+  private readonly EMBED_FAIL_THRESHOLD = 3;
+  private readonly EMBED_BACKOFF_MS = 10 * 60 * 1000; // 10 minutes
 
   constructor(apiKey?: string) {
     if (apiKey) {

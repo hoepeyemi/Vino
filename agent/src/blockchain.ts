@@ -88,8 +88,12 @@ const YIELD_VAULT_ABI = [
 
 const AGENT_ROUTER_ABI = [
   'function recordDecision(uint256 tokenId, uint8 strategy, uint256 confidence, string reasoning) returns (uint256)',
+  'function executeDecision(uint256 tokenId, uint256 decisionIndex) external',
+  'function getDecisionCount(uint256 tokenId) view returns (uint256)',
   'function getLatestDecision(uint256 tokenId) view returns (tuple(uint256 tokenId, uint8 recommendedStrategy, string reasoning, uint256 confidence, uint256 timestamp, bool executed))',
   'function isAgentAuthorized(address agent) view returns (bool)',
+  'function getConfig() view returns (tuple(uint256 minConfidence, uint256 maxGasPrice, bool autoExecute, bool active))',
+  'function updateConfig(uint256 minConfidence, uint256 maxGasPrice, bool autoExecute) external',
   // Used for pre-flight cooldown check before submitting a tx
   'function lastAnalysis(uint256 tokenId) view returns (uint256)',
   'function decisionCooldown() view returns (uint256)',
@@ -356,6 +360,44 @@ export class BlockchainService {
       // Always release the tx lock so the next queued call can proceed,
       // regardless of whether this attempt succeeded or failed.
       releaseTxLock();
+    }
+  }
+
+  /**
+   * Called once at startup. Raises AgentRouter.config.maxGasPrice if it is
+   * lower than the current Monad testnet base fee (~100 Gwei), which would
+   * cause the auto-execute branch inside recordDecision() to be silently
+   * skipped — the decision gets recorded but the YieldVault strategy never
+   * changes, so the agent re-submits the same change every 5-minute cooldown
+   * window forever.
+   *
+   * Only the AgentRouter owner can call updateConfig(); the agent wallet is
+   * that owner, so this works without any additional setup.
+   */
+  async ensureRouterConfig(): Promise<void> {
+    if (!this.signer) return;
+    try {
+      const cfg = await this.agentRouter.getConfig() as {
+        minConfidence: bigint;
+        maxGasPrice: bigint;
+        autoExecute: boolean;
+        active: boolean;
+      };
+      const TARGET_MAX_GAS = ethers.parseUnits('500', 'gwei');
+      if (cfg.maxGasPrice < TARGET_MAX_GAS) {
+        console.log(`[blockchain] AgentRouter.maxGasPrice = ${ethers.formatUnits(cfg.maxGasPrice, 'gwei')} Gwei — raising to 500 Gwei so auto-execute fires…`);
+        const feeParams = await (async () => {
+          const block = await this.provider.getBlock('latest');
+          const baseFee = block?.baseFeePerGas ?? ethers.parseUnits('52', 'gwei');
+          const priorityFee = ethers.parseUnits('1', 'gwei');
+          return { maxFeePerGas: baseFee + baseFee / 5n + priorityFee, maxPriorityFeePerGas: priorityFee };
+        })();
+        const tx = await this.agentRouter.updateConfig(cfg.minConfidence, TARGET_MAX_GAS, cfg.autoExecute, feeParams);
+        await tx.wait();
+        console.log('[blockchain] ✅ AgentRouter.maxGasPrice updated to 500 Gwei');
+      }
+    } catch (err) {
+      console.warn('[blockchain] ensureRouterConfig failed (non-fatal):', err instanceof Error ? err.message : err);
     }
   }
 
