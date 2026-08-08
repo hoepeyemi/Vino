@@ -59,7 +59,10 @@ function isRetryableError(error: unknown): boolean {
       message.includes('503') ||
       message.includes('502') ||
       message.includes('504')
-    );
+    ) &&
+    // Monad testnet maps ALL contract reverts to "out of gas" in eth_estimateGas
+    // (no decoded reason data). These are logic failures — retrying won't help.
+    !message.includes('out of gas');
   }
   return false;
 }
@@ -87,6 +90,9 @@ const AGENT_ROUTER_ABI = [
   'function recordDecision(uint256 tokenId, uint8 strategy, uint256 confidence, string reasoning) returns (uint256)',
   'function getLatestDecision(uint256 tokenId) view returns (tuple(uint256 tokenId, uint8 recommendedStrategy, string reasoning, uint256 confidence, uint256 timestamp, bool executed))',
   'function isAgentAuthorized(address agent) view returns (bool)',
+  // Used for pre-flight cooldown check before submitting a tx
+  'function lastAnalysis(uint256 tokenId) view returns (uint256)',
+  'function decisionCooldown() view returns (uint256)',
   'event DecisionRecorded(uint256 indexed tokenId, uint8 strategy, uint256 confidence, string reasoning)',
   'event DecisionExecuted(uint256 indexed tokenId, uint8 strategy, address indexed executor)',
 ];
@@ -124,6 +130,11 @@ export interface ContractAddresses {
 export class BlockchainService {
   private provider: ethers.Provider;
   private signer: ethers.Signer | null = null;
+
+  // Serialises all on-chain writes so concurrent analyseInvoice() calls don't
+  // race to submit with the same nonce.  Each recordDecision() awaits the
+  // previous submission before asking the node for a nonce.
+  private txLock: Promise<void> = Promise.resolve();
 
   private invoiceNFT: ethers.Contract;
   private yieldVault: ethers.Contract;
@@ -263,27 +274,64 @@ export class BlockchainService {
       return { success: false, error: 'No signer available' };
     }
 
+    // Acquire the tx lock so concurrent calls from Promise.allSettled analyses
+    // are serialised — each waits for the previous broadcast before fetching
+    // its own nonce, preventing "An existing transaction had higher priority".
+    let releaseTxLock!: () => void;
+    const lockHeld = new Promise<void>(resolve => { releaseTxLock = resolve; });
+    const previousLock = this.txLock;
+    this.txLock = this.txLock.then(() => lockHeld);
+    await previousLock; // wait until any in-flight tx has been broadcast
+
     try {
-      // Fetch live fee data and cap maxFeePerGas at 10 Gwei.
-      // ethers.js auto-estimate can reach 200+ Gwei on Monad testnet, which
-      // reserves 0.13+ MON per pending tx in the mempool — accumulated failed
-      // retries quickly exhaust the wallet's effective balance even when the
-      // on-chain balance is sufficient.
-      const feeData = await this.provider.getFeeData();
-      const MAX_FEE_GWEI = ethers.parseUnits('10', 'gwei');
-      const rawMax = feeData.maxFeePerGas ?? feeData.gasPrice ?? MAX_FEE_GWEI;
-      const maxFeePerGas = rawMax < MAX_FEE_GWEI ? rawMax : MAX_FEE_GWEI;
-      const maxPriorityFeePerGas = ethers.parseUnits('1', 'gwei');
+      // Pre-flight cooldown check — the AgentRouter enforces a 5-minute window
+      // between decisions for the same token. Monad testnet returns the generic
+      // -32603 / "out of gas" error for ALL contract reverts (no decoded reason),
+      // so we would only discover the cooldown violation after wasting an attempt.
+      // Read lastAnalysis + decisionCooldown directly to skip predictably-failing calls.
+      try {
+        const [lastTs, cooldown] = await Promise.all([
+          this.agentRouter.lastAnalysis(tokenId) as Promise<bigint>,
+          this.agentRouter.decisionCooldown() as Promise<bigint>,
+        ]);
+        const nowSecs = BigInt(Math.floor(Date.now() / 1000));
+        if (nowSecs < lastTs + cooldown) {
+          const secsLeft = Number(lastTs + cooldown - nowSecs);
+          console.debug(`[blockchain] recordDecision(${tokenId}): cooldown active — ${secsLeft}s remaining`);
+          return { success: false, error: 'cooldown' };
+        }
+      } catch {
+        // If the read call fails (RPC blip), proceed and let the tx itself be the gate.
+      }
+
+      // Build EIP-1559 fee params from the ACTUAL block base fee, not
+      // ethers.js's getFeeData() which returns 2*baseFee and can reach
+      // 200+ Gwei on Monad testnet — causing massive per-tx mempool
+      // reservations that exhaust the wallet long before the balance runs out.
+      // Fee is re-computed inside the retry closure so each attempt gets
+      // fresh block data (base fee can change between retries).
+      const buildFeeParams = async () => {
+        const block = await this.provider.getBlock('latest');
+        const baseFee = block?.baseFeePerGas ?? ethers.parseUnits('52', 'gwei');
+        const priorityFee = ethers.parseUnits('1', 'gwei');
+        // baseFee * 1.2 + 1 Gwei: comfortably above base fee without 2× inflation
+        return {
+          maxFeePerGas: baseFee + baseFee / 5n + priorityFee,
+          maxPriorityFeePerGas: priorityFee,
+        };
+      };
 
       // Only retry the transaction submission, never tx.wait().
       // If we wrapped send+wait together, a timeout between mempool submission
       // and receipt confirmation would re-submit a second transaction — the
       // contract is not idempotent so this would create a duplicate record.
       const tx = await withRetry(
-        () => this.agentRouter.recordDecision(tokenId, strategy, confidence, reasoning, {
-          maxFeePerGas,
-          maxPriorityFeePerGas,
-        }),
+        async () => {
+          const feeParams = await buildFeeParams();
+          return this.agentRouter.recordDecision(
+            tokenId, strategy, confidence, reasoning, feeParams,
+          );
+        },
         `recordDecision-send(${tokenId})`,
         { maxAttempts: 3, baseDelayMs: 2000, maxDelayMs: 15000 }
       );
@@ -304,6 +352,10 @@ export class BlockchainService {
         console.error(`[blockchain] recordDecision(${tokenId}) failed: ${errorMessage}`);
       }
       return { success: false, error: errorMessage };
+    } finally {
+      // Always release the tx lock so the next queued call can proceed,
+      // regardless of whether this attempt succeeded or failed.
+      releaseTxLock();
     }
   }
 
