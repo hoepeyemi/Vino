@@ -185,8 +185,6 @@ Download report JSON (mintTxHash auto-populated from localStorage)
 └────────────────────────────────────────────────────────────┘
 ```
 
-
-
 ## Key Technical Decisions
 
 | Decision | Rationale |
