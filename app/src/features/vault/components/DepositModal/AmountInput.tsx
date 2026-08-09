@@ -1,6 +1,5 @@
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Card } from '@/components/ui/card';
 import { Zap } from 'lucide-react';
 import { calculateProjectedEarnings } from '../../hooks/useStrategyConfig';
 
@@ -37,7 +36,7 @@ export function AmountInput({
             placeholder="25000"
             value={depositAmount}
             onChange={(e) => onAmountChange(e.target.value)}
-            className="pl-7 bg-background/50 border-glass-border text-lg font-semibold"
+            className="pl-7 border-[#1f1f1f] text-lg font-semibold"
           />
         </div>
         {showFullAmountTip && (
@@ -52,27 +51,27 @@ export function AmountInput({
       </div>
 
       {/* Projected Earnings Calculator */}
-      <Card className="glass border-glass-border p-5 bg-gradient-to-br from-primary/5 to-accent/5">
-        <h3 className="font-semibold mb-4 flex items-center gap-2">
-          <Zap className="w-4 h-4 text-primary" />
+      <div className="rounded border border-[#10b981]/20 bg-[#10b981]/5 p-5">
+        <h3 className="font-semibold mb-4 flex items-center gap-2 text-[#e5e5e5]">
+          <Zap className="w-4 h-4 text-[#10b981]" />
           Projected Earnings (estimated)
         </h3>
         <div className="grid grid-cols-3 gap-4">
           <div>
             <p className="text-sm text-muted-foreground mb-1">30 Days</p>
-            <p className="text-xl font-bold gradient-text">
+            <p className="text-xl font-bold text-[#10b981]">
               ~${calculateProjectedEarnings(depositAmount, selectedStrategyAPY, 30)}
             </p>
           </div>
           <div>
             <p className="text-sm text-muted-foreground mb-1">90 Days</p>
-            <p className="text-xl font-bold gradient-text">
+            <p className="text-xl font-bold text-[#10b981]">
               ~${calculateProjectedEarnings(depositAmount, selectedStrategyAPY, 90)}
             </p>
           </div>
           <div>
             <p className="text-sm text-muted-foreground mb-1">1 Year</p>
-            <p className="text-xl font-bold gradient-text">
+            <p className="text-xl font-bold text-[#10b981]">
               ~${calculateProjectedEarnings(depositAmount, selectedStrategyAPY, 365)}
             </p>
           </div>
@@ -80,7 +79,7 @@ export function AmountInput({
         <p className="text-xs text-muted-foreground mt-3">
           Based on current APY. Actual yield may vary.
         </p>
-      </Card>
+      </div>
     </div>
   );
 }

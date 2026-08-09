@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef } from "react"
 import { Wallet, Plus, Bot, Menu, X, ChevronDown } from "lucide-react"
 import Link from "next/link"
+import Image from "next/image"
 import { useAccount, useConnect, useDisconnect, useChainId, useSwitchChain } from 'wagmi'
 import { injected } from 'wagmi/connectors'
 import { toast } from "sonner"
@@ -23,7 +24,7 @@ export function DashboardHeader() {
   const chainMenuRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
-    setMounted(true)
+    setMounted(true)   // SSR hydration guard — runs once after mount
   }, [])
 
   useEffect(() => {
@@ -41,9 +42,10 @@ export function DashboardHeader() {
       })
       previouslyConnected.current = false
     }
-  }, [isConnected, address, mounted])
+  }, [isConnected, address, mounted, chainId])
 
   useEffect(() => {
+    // Close menus whenever the route changes.
     setMobileMenuOpen(false)
     setChainMenuOpen(false)
   }, [pathname])
@@ -83,7 +85,7 @@ export function DashboardHeader() {
             </button>
 
             <Link href="/" className="flex items-center gap-2">
-              <img src="/logo.svg" alt="vino" className="w-8 h-8" />
+              <Image src="/logo.svg" alt="vino" width={32} height={32} />
               <span className="font-display font-semibold text-lg tracking-tight hidden sm:inline">vino</span>
             </Link>
 

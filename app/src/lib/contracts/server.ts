@@ -34,13 +34,6 @@ export const publicClient = createPublicClient({
 
 const addresses = getContractAddresses(chainId)
 
-// Log resolved addresses at startup so docker logs shows which contracts are in use
-console.log("[contracts/server] chainId:", chainId)
-console.log("[contracts/server] invoiceNFT:", addresses.invoiceNFT)
-console.log("[contracts/server] yieldVault:", addresses.yieldVault)
-console.log("[contracts/server] agentRouter:", addresses.agentRouter)
-console.log("[contracts/server] RPC URLs:", getMonadTestnetRpcUrls())
-
 // Invoice NFT reads
 export async function getInvoice(tokenId: bigint): Promise<Invoice | null> {
   try {
@@ -78,7 +71,6 @@ export async function getActiveInvoices(): Promise<bigint[]> {
       functionName: "getActiveInvoices",
     })
     const ids = result as bigint[]
-    console.log("[contracts/server] getActiveInvoices →", ids.length, "ids:", ids.map(String))
     return ids
   } catch (err) {
     console.error("[contracts/server] getActiveInvoices failed:", err)

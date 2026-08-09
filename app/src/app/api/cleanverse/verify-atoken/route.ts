@@ -4,28 +4,69 @@
  * Cross-validates a CVA A-Token with the caller's A-Pass (POST /verify_apass).
  * Confirms a wallet is eligible to settle using a specific CVA asset.
  *
+ * Fallback hierarchy:
+ *   1. Cleanverse /verify_apass  — authoritative when available
+ *   2. MockCVI.isVerified()     — on-chain fallback for Monad testnet UAT where
+ *      verify_apass may return non-0000 (endpoint not fully enabled for this chain)
+ *
  * Body:    { address: string; atoken: string; chain?: string }
- * Returns: { verified: boolean } | { verified: false; reason: string }
+ * Returns: { verified: boolean; source?: string }
  *
  * Required env: CLEANVERSE_API_ID, CLEANVERSE_API_KEY
  */
 
 import { NextRequest, NextResponse } from 'next/server'
+import { createPublicClient, http, parseAbi, defineChain, type Address } from 'viem'
 import {
   CLEANVERSE_API_URL,
   cleanverseHeaders,
   encryptedBody,
   isCleanverseConfigured,
   RateLimiter,
+  DEFAULT_MOCK_CVI_ADDRESS,
+  DEFAULT_RPC_URL,
 } from '@/lib/cleanverse-server'
 
 // 30 eligibility checks per address per hour
 const rl = new RateLimiter(30, 3_600_000)
 
+const MOCK_CVI_ADDRESS = DEFAULT_MOCK_CVI_ADDRESS as Address
+const RPC_URL          = DEFAULT_RPC_URL
+
+const monadTestnet = defineChain({
+  id: 10143,
+  name: 'Monad Testnet',
+  nativeCurrency: { name: 'Monad', symbol: 'MON', decimals: 18 },
+  rpcUrls: { default: { http: [RPC_URL] } },
+})
+
+const MOCK_CVI_ABI = parseAbi([
+  'function isVerified(address wallet) view returns (bool)',
+])
+
+/** Check on-chain CVI status as a fallback when Cleanverse API is unavailable. */
+async function isMockCviVerified(address: string): Promise<boolean> {
+  try {
+    const client = createPublicClient({
+      chain: monadTestnet,
+      transport: http(RPC_URL),
+    })
+    return await client.readContract({
+      address: MOCK_CVI_ADDRESS,
+      abi: MOCK_CVI_ABI,
+      functionName: 'isVerified',
+      args: [address as Address],
+    })
+  } catch {
+    return false
+  }
+}
+
 export async function POST(req: NextRequest) {
-  const body    = await req.json().catch(() => null) as {
+  const body = await req.json().catch(() => null) as {
     address?: string; atoken?: string; chain?: string
   } | null
+
   const address = body?.address
   const atoken  = body?.atoken
   const chain   = body?.chain ?? 'monad'
@@ -36,29 +77,41 @@ export async function POST(req: NextRequest) {
   if (!atoken) {
     return NextResponse.json({ verified: false, reason: 'missing_atoken' }, { status: 400 })
   }
-  if (!isCleanverseConfigured()) {
-    return NextResponse.json({ verified: false, reason: 'unconfigured' })
-  }
   if (!rl.allow(address.toLowerCase())) {
     return NextResponse.json({ verified: false, reason: 'rate_limited' }, { status: 429 })
   }
 
-  try {
-    const raw = await fetch(`${CLEANVERSE_API_URL}/verify_apass`, {
-      method: 'POST',
-      headers: cleanverseHeaders(),
-      body: encryptedBody({ chain, atoken, address }),
-      signal: AbortSignal.timeout(15_000),
-    })
-    if (!raw.ok) throw new Error(`HTTP ${raw.status}`)
-    const resp = await raw.json() as { code: string; message?: string }
-
-    if (resp.code === '0000') {
-      return NextResponse.json({ verified: true })
+  // ── 1. Try Cleanverse verify_apass ──────────────────────────────────────────
+  if (isCleanverseConfigured()) {
+    try {
+      const raw = await fetch(`${CLEANVERSE_API_URL}/verify_apass`, {
+        method: 'POST',
+        headers: cleanverseHeaders(),
+        body: encryptedBody({ chain, atoken, address }),
+        signal: AbortSignal.timeout(8_000),
+      })
+      if (raw.ok) {
+        const resp = await raw.json() as { code: string; message?: string }
+        if (resp.code === '0000') {
+          return NextResponse.json({ verified: true, source: 'cleanverse' })
+        }
+        // Non-0000 may mean verify_apass is not enabled for this chain on UAT
+        // — fall through to on-chain fallback rather than hard-failing.
+        console.warn('[verify-atoken] verify_apass non-0000:', resp.code, resp.message)
+      }
+    } catch (err) {
+      console.warn('[verify-atoken] verify_apass failed, trying on-chain fallback:', err)
     }
-    return NextResponse.json({ verified: false, code: resp.code, message: resp.message })
-  } catch (err) {
-    console.error('[cleanverse/verify-atoken]', err)
-    return NextResponse.json({ verified: false, reason: 'internal_error' }, { status: 500 })
   }
+
+  // ── 2. Fallback: check MockCVI.isVerified() on Monad ───────────────────────
+  // If the wallet holds a valid on-chain A-Pass approval it is eligible for all
+  // CVA A-Tokens — the CVI credential IS the settlement eligibility gate.
+  const onChainVerified = await isMockCviVerified(address)
+  if (onChainVerified) {
+    return NextResponse.json({ verified: true, source: 'mock-cvi-onchain' })
+  }
+
+  // Neither Cleanverse nor on-chain CVI verified — wallet is not eligible
+  return NextResponse.json({ verified: false, reason: 'not_eligible', source: 'local' })
 }

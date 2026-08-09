@@ -1,9 +1,7 @@
 "use client"
 
 import { useState, useEffect, useCallback, useRef } from "react"
-import { Card } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
-import { Badge } from "@/components/ui/badge"
 import { Input } from "@/components/ui/input"
 import {
   Table,
@@ -30,7 +28,6 @@ import {
   Shield,
   UserPlus,
   Copy,
-  Check,
   FileText,
   AlertTriangle,
   Loader2,
@@ -448,251 +445,220 @@ export default function IssuerDashboardPage() {
     <div className="min-h-screen bg-[#0a0a0a] bg-grid noise-overlay scan-line pb-8">
       <TerminalNav />
 
-      <main className="container mx-auto px-4 py-8 max-w-6xl">
+      <main className="max-w-6xl mx-auto px-6 py-8">
         {/* Header */}
-        <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-8">
+        <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-6">
           <div>
-            <h1 className="text-3xl font-bold flex items-center gap-3">
-              <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-primary/20 to-accent/20 flex items-center justify-center">
-                <Shield className="w-5 h-5 text-primary" />
-              </div>
-              Privacy Controls
+            <h1 className="text-[24px] font-bold mb-1 flex items-center gap-3">
+              <Shield className="w-5 h-5 text-[#10b981]" />
+              PRIVACY CONTROLS
             </h1>
-            <p className="text-muted-foreground mt-2">
-              Manage who can access your invoice details
+            <p className="text-[12px] text-[#666666]">
+              Manage selective disclosure for your invoices
             </p>
           </div>
           <div className="flex items-center gap-3">
-            <Badge variant="outline" className="border-primary/30 bg-primary/10 text-primary">
-              <Lock className="w-3 h-3 mr-2" />
-              {invoices.length} Invoice{invoices.length !== 1 ? "s" : ""} Protected
-            </Badge>
+            <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded border border-[#10b981]/30 bg-[#10b981]/10 text-[10px] text-[#10b981] font-semibold uppercase tracking-wider">
+              <Lock className="w-3 h-3" />
+              {invoices.length} invoice{invoices.length !== 1 ? "s" : ""} protected
+            </span>
             {isConnected && !isLoading && (
-              <Button
-                variant="outline"
-                size="sm"
-                className="border-glass-border"
+              <button
+                className="text-[11px] text-[#666666] hover:text-[#e5e5e5] flex items-center gap-1.5 transition-colors"
                 onClick={fetchUserInvoices}
               >
-                <RefreshCw className="w-3 h-3 mr-1" />
-                Refresh
-              </Button>
+                <RefreshCw className="w-3 h-3" />
+                refresh
+              </button>
             )}
           </div>
         </div>
 
         {/* Privacy explainer */}
-        <Card className="glass border-glass-border p-6 mb-8">
+        <div className="terminal-card p-4 mb-6">
           <div className="flex items-start gap-4">
-            <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-primary/20 to-accent/20 flex items-center justify-center flex-shrink-0">
-              <Lock className="w-6 h-6 text-primary" />
-            </div>
+            <Lock className="w-4 h-4 text-[#10b981] mt-0.5 shrink-0" />
             <div>
-              <h3 className="font-semibold mb-2">Your Data Stays Private</h3>
-              <p className="text-sm text-muted-foreground mb-3">
-                Invoice details are stored as cryptographic commitment hashes on-chain.
-                Only you — as the original issuer — can authorize specific parties to
-                verify the underlying data.
+              <p className="text-[12px] font-semibold text-[#d6d6d6] mb-1">Your data stays private</p>
+              <p className="text-[11px] text-[#666666] mb-3">
+                Invoice details are stored as keccak256 commitment hashes on-chain.
+                Only you — as the CVI-verified issuer — can authorize specific parties to verify the underlying data.
               </p>
-              <div className="flex flex-wrap gap-4 text-xs">
-                <div className="flex items-center gap-2 text-muted-foreground">
-                  <EyeOff className="w-4 h-4" />
-                  <span>Client names hidden</span>
-                </div>
-                <div className="flex items-center gap-2 text-muted-foreground">
-                  <EyeOff className="w-4 h-4" />
-                  <span>Amounts hidden</span>
-                </div>
-                <div className="flex items-center gap-2 text-muted-foreground">
-                  <EyeOff className="w-4 h-4" />
-                  <span>Terms hidden</span>
-                </div>
-                <div className="flex items-center gap-2 text-success">
-                  <Eye className="w-4 h-4" />
-                  <span>Selectively revealable</span>
-                </div>
+              <div className="flex flex-wrap gap-4 text-[10px]">
+                <span className="flex items-center gap-1.5 text-[#666666]"><EyeOff className="w-3 h-3" /> client names hidden</span>
+                <span className="flex items-center gap-1.5 text-[#666666]"><EyeOff className="w-3 h-3" /> amounts hidden</span>
+                <span className="flex items-center gap-1.5 text-[#10b981]"><Eye className="w-3 h-3" /> selectively revealable</span>
               </div>
             </div>
           </div>
-        </Card>
+        </div>
+
+        {/* CVI Protocol Rail — issuer context */}
+        <div className="border border-[#1a1a1a] rounded p-3 mb-6 bg-[#0d0d0d]">
+          <div className="flex items-center gap-2 mb-2.5">
+            <span className="w-1.5 h-1.5 rounded-full bg-[#10b981] status-pulse" />
+            <span className="text-[9px] uppercase tracking-[0.2em] text-[#10b981] font-semibold">CVI Protocol Flow</span>
+            <span className="text-[9px] text-[#333333]">· Cleanverse Verified Identity</span>
+          </div>
+          <div className="flex items-center gap-1 text-[9px] font-mono flex-wrap">
+            <span className="px-1.5 py-0.5 rounded border border-[#10b981]/30 bg-[#10b981]/10 text-[#10b981]">A-Pass KYB</span>
+            <span className="text-[#333333]">→</span>
+            <span className="px-1.5 py-0.5 rounded border border-[#1f1f1f] text-[#555555]">generate_apass</span>
+            <span className="text-[#333333]">→</span>
+            <span className="px-1.5 py-0.5 rounded border border-[#1f1f1f] text-[#555555]">query_apass</span>
+            <span className="text-[#333333]">→</span>
+            <span className="px-1.5 py-0.5 rounded border border-[#836EF9]/30 bg-[#836EF9]/10 text-[#836EF9]">MockCVI.verify()</span>
+            <span className="text-[#333333]">→</span>
+            <span className="px-1.5 py-0.5 rounded border border-[#10b981]/30 bg-[#10b981]/10 text-[#10b981]">invoice mint</span>
+            <span className="text-[#333333]">→</span>
+            <span className="px-1.5 py-0.5 rounded border border-[#10b981]/30 bg-[#10b981]/10 text-[#10b981]">selective disclosure</span>
+          </div>
+        </div>
 
         {/* Loading */}
         {isConnected && isLoading && (
-          <Card className="glass border-glass-border p-12 text-center">
-            <Loader2 className="w-8 h-8 animate-spin mx-auto mb-4 text-primary" />
-            <p className="text-muted-foreground">Loading your invoices…</p>
-          </Card>
+          <div className="terminal-card p-12 text-center">
+            <Loader2 className="w-6 h-6 animate-spin mx-auto mb-3 text-[#10b981]" />
+            <p className="text-[12px] text-[#666666]">Loading your invoices…</p>
+          </div>
         )}
 
         {/* Fetch error */}
         {isConnected && !isLoading && fetchError && (
-          <Card className="glass border-glass-border p-8">
-            <div className="flex items-start gap-3 text-destructive">
-              <XCircle className="w-5 h-5 flex-shrink-0 mt-0.5" />
+          <div className="terminal-card p-6">
+            <div className="flex items-start gap-3 text-[#ef4444]">
+              <XCircle className="w-4 h-4 flex-shrink-0 mt-0.5" />
               <div>
-                <p className="font-medium mb-1">Failed to load invoices</p>
-                <p className="text-sm text-muted-foreground">{fetchError}</p>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className="mt-3 border-glass-border"
+                <p className="text-[12px] font-medium mb-1">Failed to load invoices</p>
+                <p className="text-[11px] text-[#666666]">{fetchError}</p>
+                <button
+                  className="mt-3 text-[11px] text-[#666666] hover:text-[#e5e5e5] flex items-center gap-1.5"
                   onClick={fetchUserInvoices}
                 >
-                  <RefreshCw className="w-3 h-3 mr-1" />
-                  Try again
-                </Button>
+                  <RefreshCw className="w-3 h-3" />
+                  try again
+                </button>
               </div>
             </div>
-          </Card>
+          </div>
         )}
 
         {/* Not connected */}
         {!isConnected && (
-          <Card className="glass border-glass-border p-12 text-center">
-            <div className="w-16 h-16 rounded-full bg-muted/50 flex items-center justify-center mx-auto mb-4">
-              <Lock className="w-8 h-8 text-muted-foreground" />
-            </div>
-            <h3 className="text-xl font-semibold mb-2">Connect Your Wallet</h3>
-            <p className="text-muted-foreground">
-              Connect the wallet you used to mint your invoices
-            </p>
-          </Card>
+          <div className="terminal-card p-12 text-center">
+            <Lock className="w-8 h-8 text-[#444444] mx-auto mb-3" />
+            <h3 className="text-[14px] font-semibold mb-1">Connect Your Wallet</h3>
+            <p className="text-[12px] text-[#666666]">Connect the wallet you used to mint your invoices</p>
+          </div>
         )}
 
         {/* No invoices */}
         {isConnected && !isLoading && !fetchError && invoices.length === 0 && (
-          <Card className="glass border-glass-border p-12 text-center">
-            <div className="w-16 h-16 rounded-full bg-muted/50 flex items-center justify-center mx-auto mb-4">
-              <FileText className="w-8 h-8 text-muted-foreground" />
-            </div>
-            <h3 className="text-xl font-semibold mb-2">No Invoices Found</h3>
-            <p className="text-muted-foreground mb-2">
-              No active invoices were minted by this wallet.
-            </p>
-            <p className="text-xs text-muted-foreground mb-6">
-              Connected: {address?.slice(0, 6)}…{address?.slice(-4)}
-            </p>
-            <Button asChild className="bg-gradient-to-r from-primary to-accent">
-              <a href="/dashboard/mint">Mint Invoice</a>
-            </Button>
-          </Card>
+          <div className="terminal-card p-12 text-center">
+            <FileText className="w-8 h-8 text-[#444444] mx-auto mb-3" />
+            <h3 className="text-[14px] font-semibold mb-1">No Invoices Found</h3>
+            <p className="text-[12px] text-[#666666] mb-1">No active invoices minted by this wallet.</p>
+            <p className="text-[11px] text-[#444444] mb-4">{address?.slice(0, 6)}…{address?.slice(-4)}</p>
+            <a href="/dashboard/mint" className="text-[11px] text-[#10b981] hover:underline">mint invoice →</a>
+          </div>
         )}
 
         {/* Invoices table */}
         {isConnected && !isLoading && !fetchError && invoices.length > 0 && (
-          <Card className="glass border-glass-border overflow-hidden">
+          <div className="border border-[#1f1f1f] rounded overflow-hidden mb-6">
             <Table>
               <TableHeader>
-                <TableRow className="border-glass-border hover:bg-transparent">
-                  <TableHead className="text-muted-foreground">Invoice</TableHead>
-                  <TableHead className="text-muted-foreground">Commitment Hash</TableHead>
-                  <TableHead className="text-muted-foreground">Status</TableHead>
-                  <TableHead className="text-muted-foreground">Authorized Parties</TableHead>
-                  <TableHead className="text-muted-foreground text-right">Actions</TableHead>
+                <TableRow className="border-[#1f1f1f] bg-[#111111] hover:bg-[#111111]">
+                  <TableHead className="text-[10px] text-[#666666] uppercase tracking-wider font-semibold">Invoice</TableHead>
+                  <TableHead className="text-[10px] text-[#666666] uppercase tracking-wider font-semibold">Commitment Hash</TableHead>
+                  <TableHead className="text-[10px] text-[#666666] uppercase tracking-wider font-semibold">Status</TableHead>
+                  <TableHead className="text-[10px] text-[#666666] uppercase tracking-wider font-semibold">Authorized</TableHead>
+                  <TableHead className="text-[10px] text-[#666666] uppercase tracking-wider font-semibold text-right">Action</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {invoices.map((invoice) => (
-                  <TableRow
-                    key={invoice.tokenId}
-                    className="border-glass-border hover:bg-muted/30"
-                  >
+                  <TableRow key={invoice.tokenId} className="border-[#1f1f1f] hover:bg-[#111111]">
                     <TableCell>
                       <div className="flex items-center gap-2">
-                        <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center">
-                          <FileText className="w-4 h-4 text-primary" />
-                        </div>
+                        <FileText className="w-3.5 h-3.5 text-[#10b981]" />
                         <div>
-                          <span className="font-medium">#{invoice.tokenId}</span>
-                          <div className="text-[10px] text-muted-foreground">
-                            {invoice.status === 1 ? "In Yield" : "Active"}
-                          </div>
+                          <span className="text-[12px] font-semibold text-[#10b981]">#{invoice.tokenId}</span>
+                          <div className="text-[10px] text-[#666666]">{invoice.status === 1 ? "in yield" : "active"}</div>
                         </div>
                       </div>
                     </TableCell>
                     <TableCell>
                       <div className="flex items-center gap-2">
-                        <code className="text-xs text-muted-foreground font-mono">
+                        <code className="text-[11px] text-[#666666] font-mono">
                           {invoice.dataCommitment
                             ? `${invoice.dataCommitment.slice(0, 10)}…${invoice.dataCommitment.slice(-8)}`
                             : "—"}
                         </code>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          className="h-6 w-6"
+                        <button
+                          className="text-[#444444] hover:text-[#10b981] transition-colors"
                           disabled={!invoice.dataCommitment}
-                          onClick={() =>
-                            copyCommitment(invoice.dataCommitment, invoice.tokenId)
-                          }
+                          onClick={() => copyCommitment(invoice.dataCommitment, invoice.tokenId)}
                         >
                           {copiedId === invoice.tokenId ? (
-                            <Check className="w-3 h-3 text-success" />
+                            <CheckCircle2 className="w-3 h-3 text-[#10b981]" />
                           ) : (
                             <Copy className="w-3 h-3" />
                           )}
-                        </Button>
+                        </button>
                       </div>
                     </TableCell>
                     <TableCell>
-                      <Badge
-                        variant="outline"
-                        className="border-success/30 bg-success/10 text-success"
-                      >
-                        <Lock className="w-3 h-3 mr-1" />
-                        Private
-                      </Badge>
+                      <span className="inline-flex items-center gap-1 text-[10px] text-[#10b981] border border-[#10b981]/20 bg-[#10b981]/10 px-2 py-0.5 rounded">
+                        <Lock className="w-2.5 h-2.5" />
+                        private
+                      </span>
                     </TableCell>
                     <TableCell>
-                      <span className="text-sm text-muted-foreground">
-                        {invoice.authorizedCount} address
-                        {invoice.authorizedCount !== 1 ? "es" : ""}
+                      <span className="text-[11px] text-[#666666]">
+                        {invoice.authorizedCount} address{invoice.authorizedCount !== 1 ? "es" : ""}
                       </span>
                     </TableCell>
                     <TableCell className="text-right">
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        className="border-glass-border"
+                      <button
+                        className="text-[11px] text-[#666666] hover:text-[#10b981] flex items-center gap-1.5 ml-auto transition-colors"
                         onClick={() => openDialog(invoice)}
                       >
-                        <UserPlus className="w-4 h-4 mr-2" />
-                        Authorize
-                      </Button>
+                        <UserPlus className="w-3 h-3" />
+                        authorize
+                      </button>
                     </TableCell>
                   </TableRow>
                 ))}
               </TableBody>
             </Table>
-          </Card>
+          </div>
         )}
 
         {/* Info cards */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-8">
-          <Card className="glass border-glass-border p-6">
-            <h3 className="font-semibold mb-3 flex items-center gap-2">
-              <Shield className="w-4 h-4 text-primary" />
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="terminal-card p-4">
+            <h3 className="text-[12px] font-semibold mb-2 flex items-center gap-2">
+              <Shield className="w-3.5 h-3.5 text-[#10b981]" />
               How Commitments Work
             </h3>
-            <p className="text-sm text-muted-foreground">
-              When you mint an invoice, the details are hashed into a commitment. The
-              hash is stored on-chain, but the original data stays with you. To verify
-              an invoice, you provide the original data and a salt — if the hash
-              matches, the data is authentic.
+            <p className="text-[11px] text-[#666666] leading-relaxed">
+              Invoice details are hashed into a keccak256 commitment at mint time.
+              The hash is stored on-chain as proof; the original data stays with you.
+              Authorized parties call <code className="text-[#10b981]">verifyReveal()</code> to confirm authenticity.
             </p>
-          </Card>
-          <Card className="glass border-glass-border p-6">
-            <h3 className="font-semibold mb-3 flex items-center gap-2">
-              <AlertTriangle className="w-4 h-4 text-warning" />
+          </div>
+          <div className="terminal-card p-4">
+            <h3 className="text-[12px] font-semibold mb-2 flex items-center gap-2">
+              <AlertTriangle className="w-3.5 h-3.5 text-[#f59e0b]" />
               Important
             </h3>
-            <p className="text-sm text-muted-foreground">
-              Only the wallet that <strong>originally minted</strong> the invoice can
-              authorize reveals. Keep your salt secure — anyone with the salt and
-              original data can prove the commitment. Authorizations are on-chain and
-              permanent.
+            <p className="text-[11px] text-[#666666] leading-relaxed">
+              Only the wallet that <strong className="text-[#d6d6d6]">originally minted</strong> the invoice can
+              authorize reveals. Authorizations are on-chain and permanent.
+              The issuer must be CVI-verified (Cleanverse A-Pass) to have minted at all.
             </p>
-          </Card>
+          </div>
         </div>
       </main>
 
@@ -703,19 +669,20 @@ export default function IssuerDashboardPage() {
           if (!open) closeDialog()
         }}
       >
-        <DialogContent className="glass border-glass-border">
+        <DialogContent className="bg-[#111111] border-[#1f1f1f] text-[#e5e5e5]">
           <DialogHeader>
-            <DialogTitle>Authorize Address</DialogTitle>
-            <DialogDescription>
-              Grant an address permission to verify Invoice #
-              {selectedInvoice?.tokenId}
+            <DialogTitle className="text-[#e5e5e5] text-[14px] font-semibold">
+              Authorize Address
+            </DialogTitle>
+            <DialogDescription className="text-[#666666] text-[11px]">
+              Grant an address permission to verify Invoice #{selectedInvoice?.tokenId}
             </DialogDescription>
           </DialogHeader>
 
-          <div className="space-y-4 py-4">
+          <div className="space-y-3 py-2">
             <div>
-              <label className="text-sm font-medium mb-2 block">
-                Ethereum Address
+              <label className="text-[11px] text-[#666666] uppercase tracking-wider mb-1.5 block">
+                wallet address
               </label>
               <Input
                 placeholder="0x…"
@@ -724,70 +691,51 @@ export default function IssuerDashboardPage() {
                   setNewAddress(e.target.value)
                   setPreflightError(null)
                 }}
-                className="font-mono"
+                className="font-mono text-[12px] bg-[#0a0a0a] border-[#1f1f1f] text-[#e5e5e5]"
                 disabled={isBusy}
               />
               {newAddress && !isAddress(newAddress) && (
-                <p className="text-xs text-destructive mt-1">
-                  Invalid Ethereum address
-                </p>
+                <p className="text-[11px] text-[#ef4444] mt-1">Invalid Ethereum address</p>
               )}
             </div>
 
-            {/* Hard error (pre-flight failure or non-simulation write error) */}
+            {/* Hard error */}
             {displayError && (
-              <div className="flex items-start gap-2 p-3 rounded-lg bg-destructive/10 border border-destructive/30">
-                <XCircle className="w-4 h-4 text-destructive flex-shrink-0 mt-0.5" />
-                <p className="text-xs text-destructive">{displayError}</p>
+              <div className="flex items-start gap-2 p-3 rounded border border-[#ef4444]/30 bg-[#ef4444]/10">
+                <XCircle className="w-3.5 h-3.5 text-[#ef4444] shrink-0 mt-0.5" />
+                <p className="text-[11px] text-[#ef4444]">{displayError}</p>
               </div>
             )}
 
-            {/* MetaMask RPC simulation warning */}
+            {/* MetaMask sim warning */}
             {isMetaMaskSimWarning && (
-              <div className="flex items-start gap-2 p-3 rounded-lg bg-warning/10 border border-warning/30">
-                <AlertTriangle className="w-4 h-4 text-warning flex-shrink-0 mt-0.5" />
-                <div className="text-xs text-warning space-y-1">
-                  <p className="font-medium">MetaMask shows a simulation warning</p>
-                  <p>
-                    Monad Testnet&apos;s RPC doesn&apos;t support simulation
-                    correctly. Your wallet ownership{" "}
-                    <strong>has been verified on-chain</strong>. Click{" "}
-                    <strong>Authorize</strong> again and if MetaMask shows
-                    &quot;transaction may fail&quot;, choose{" "}
-                    <strong>I accept the risk</strong>.
-                  </p>
+              <div className="flex items-start gap-2 p-3 rounded border border-[#f59e0b]/30 bg-[#f59e0b]/10">
+                <AlertTriangle className="w-3.5 h-3.5 text-[#f59e0b] shrink-0 mt-0.5" />
+                <div className="text-[11px] text-[#f59e0b] space-y-1">
+                  <p className="font-semibold">MetaMask simulation warning</p>
+                  <p>Monad Testnet RPC ignores <code>from</code> in eth_call. Ownership <strong>verified on-chain</strong>. Click Authorize again → accept risk.</p>
                 </div>
               </div>
             )}
 
             {/* User rejected */}
             {isUserRejected && (
-              <div className="flex items-start gap-2 p-3 rounded-lg bg-muted border border-glass-border">
-                <XCircle className="w-4 h-4 text-muted-foreground flex-shrink-0 mt-0.5" />
-                <p className="text-xs text-muted-foreground">
-                  Transaction was rejected. Click Authorize to try again.
-                </p>
+              <div className="flex items-start gap-2 p-3 rounded border border-[#1f1f1f] bg-[#0a0a0a]">
+                <XCircle className="w-3.5 h-3.5 text-[#666666] shrink-0 mt-0.5" />
+                <p className="text-[11px] text-[#666666]">Transaction rejected. Click Authorize to try again.</p>
               </div>
             )}
 
-            {/* On-chain revert (tx mined but contract rejected it) */}
+            {/* On-chain revert */}
             {isOnChainRevert && (
-              <div className="flex items-start gap-2 p-3 rounded-lg bg-destructive/10 border border-destructive/30">
-                <XCircle className="w-4 h-4 text-destructive flex-shrink-0 mt-0.5" />
-                <div className="text-xs text-destructive space-y-1">
-                  <p className="font-medium">Transaction reverted on-chain</p>
-                  <p>
-                    The contract rejected the transaction after it was mined. This
-                    can happen if the invoice state changed between verification
-                    and execution. Please refresh and try again.
-                  </p>
+              <div className="flex items-start gap-2 p-3 rounded border border-[#ef4444]/30 bg-[#ef4444]/10">
+                <XCircle className="w-3.5 h-3.5 text-[#ef4444] shrink-0 mt-0.5" />
+                <div className="text-[11px] text-[#ef4444] space-y-1">
+                  <p className="font-semibold">Transaction reverted on-chain</p>
+                  <p>Invoice state may have changed. Refresh and retry.</p>
                   {txHash && (
-                    <a
-                      href={`${EXPLORER}/tx/${txHash}`}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="flex items-center gap-1 underline opacity-80"
-                    >
+                    <a href={`${EXPLORER}/tx/${txHash}`} target="_blank" rel="noopener noreferrer"
+                      className="flex items-center gap-1 underline opacity-70">
                       View failed tx <ExternalLink className="w-3 h-3" />
                     </a>
                   )}
@@ -795,29 +743,24 @@ export default function IssuerDashboardPage() {
               </div>
             )}
 
-            {/* Pending wallet signature */}
+            {/* Pending */}
             {isPending && (
-              <div className="flex items-center gap-2 p-3 rounded-lg bg-primary/10 border border-primary/30">
-                <Loader2 className="w-4 h-4 text-primary animate-spin flex-shrink-0" />
-                <p className="text-xs text-primary">Confirm in your wallet…</p>
+              <div className="flex items-center gap-2 p-3 rounded border border-[#10b981]/30 bg-[#10b981]/10">
+                <Loader2 className="w-3.5 h-3.5 text-[#10b981] animate-spin shrink-0" />
+                <p className="text-[11px] text-[#10b981]">Confirm in your wallet…</p>
               </div>
             )}
 
-            {/* Waiting for confirmation */}
+            {/* Confirming */}
             {isConfirming && (
-              <div className="flex items-center gap-2 p-3 rounded-lg bg-primary/10 border border-primary/30">
-                <Loader2 className="w-4 h-4 text-primary animate-spin flex-shrink-0" />
-                <div className="text-xs text-primary space-y-0.5">
-                  <p>Waiting for on-chain confirmation…</p>
+              <div className="flex items-center gap-2 p-3 rounded border border-[#10b981]/30 bg-[#10b981]/10">
+                <Loader2 className="w-3.5 h-3.5 text-[#10b981] animate-spin shrink-0" />
+                <div className="text-[11px] text-[#10b981] space-y-0.5">
+                  <p>Waiting for confirmation on Monad…</p>
                   {txHash && (
-                    <a
-                      href={`${EXPLORER}/tx/${txHash}`}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="flex items-center gap-1 underline opacity-80"
-                    >
-                      View on Monad Explorer{" "}
-                      <ExternalLink className="w-3 h-3" />
+                    <a href={`${EXPLORER}/tx/${txHash}`} target="_blank" rel="noopener noreferrer"
+                      className="flex items-center gap-1 underline opacity-70">
+                      View on explorer <ExternalLink className="w-3 h-3" />
                     </a>
                   )}
                 </div>
@@ -826,62 +769,41 @@ export default function IssuerDashboardPage() {
 
             {/* Success */}
             {isSuccess && (
-              <div className="flex items-center gap-2 p-3 rounded-lg bg-success/10 border border-success/30">
-                <CheckCircle2 className="w-4 h-4 text-success flex-shrink-0" />
-                <div className="text-xs text-success space-y-0.5">
-                  <p className="font-medium">Address authorized successfully</p>
+              <div className="flex items-center gap-2 p-3 rounded border border-[#10b981]/30 bg-[#10b981]/10">
+                <CheckCircle2 className="w-3.5 h-3.5 text-[#10b981] shrink-0" />
+                <div className="text-[11px] text-[#10b981] space-y-0.5">
+                  <p className="font-semibold">Address authorized on-chain</p>
                   {txHash && (
-                    <a
-                      href={`${EXPLORER}/tx/${txHash}`}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="flex items-center gap-1 underline opacity-80"
-                    >
-                      View on Monad Explorer{" "}
-                      <ExternalLink className="w-3 h-3" />
+                    <a href={`${EXPLORER}/tx/${txHash}`} target="_blank" rel="noopener noreferrer"
+                      className="flex items-center gap-1 underline opacity-70">
+                      View on Monad Explorer <ExternalLink className="w-3 h-3" />
                     </a>
                   )}
                 </div>
               </div>
             )}
 
-            <div className="p-3 rounded-lg bg-muted/50 text-xs text-muted-foreground">
-              <p className="font-medium text-foreground mb-1">What this does:</p>
-              <p>
-                The authorized address can call{" "}
-                <code>verifyReveal()</code> on-chain to confirm your invoice data is
-                authentic. This is recorded permanently on Monad Testnet.
-              </p>
+            <div className="p-3 rounded border border-[#1f1f1f] bg-[#0a0a0a] text-[11px] text-[#666666]">
+              <p className="font-semibold text-[#d6d6d6] mb-1">What this does:</p>
+              <p>The authorized address can call <code className="text-[#10b981]">verifyReveal()</code> on Monad Testnet to confirm your invoice data is authentic. Recorded on-chain permanently.</p>
             </div>
           </div>
 
           <DialogFooter>
-            <Button
-              variant="outline"
-              onClick={closeDialog}
-              disabled={isSubmitting || isPending}
-            >
+            <Button variant="secondary" onClick={closeDialog} disabled={isSubmitting || isPending}>
               {isSuccess ? "Close" : "Cancel"}
             </Button>
             {!isSuccess && (
-              <Button
-                onClick={handleAuthorize}
-                disabled={!newAddress || !isAddress(newAddress) || isBusy}
-                className="bg-gradient-to-r from-primary to-accent"
-              >
+              <Button onClick={handleAuthorize} disabled={!newAddress || !isAddress(newAddress) || isBusy}>
                 {isBusy ? (
                   <>
-                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                    {isSubmitting
-                      ? "Verifying…"
-                      : isPending
-                      ? "Confirm in wallet…"
-                      : "Confirming…"}
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                    {isSubmitting ? "Verifying…" : isPending ? "Confirm in wallet…" : "Confirming…"}
                   </>
                 ) : (
                   <>
-                    <UserPlus className="w-4 h-4 mr-2" />
-                    Authorize
+                    <UserPlus className="w-4 h-4" />
+                    authorize
                   </>
                 )}
               </Button>

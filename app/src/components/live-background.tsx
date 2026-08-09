@@ -25,8 +25,9 @@ export function LiveBackground() {
   const [streams, setStreams] = useState<DataStream[]>([])
 
   useEffect(() => {
-    // Generate floating particles - more of them, slightly larger
-    const newParticles: Particle[] = Array.from({ length: 40 }, (_, i) => ({
+    // Randomise particle + stream positions once after mount. Math.random must run
+    // client-side only — SSR would produce hydration mismatches if called at render.
+    setParticles(Array.from({ length: 40 }, (_, i) => ({
       id: i,
       x: Math.random() * 100,
       y: Math.random() * 100,
@@ -34,18 +35,14 @@ export function LiveBackground() {
       speed: Math.random() * 25 + 20,
       opacity: Math.random() * 0.4 + 0.15,
       delay: Math.random() * 15,
-    }))
-    setParticles(newParticles)
-
-    // Generate data streams (matrix-like effect) - more streams
-    const newStreams: DataStream[] = Array.from({ length: 12 }, (_, i) => ({
+    })))
+    setStreams(Array.from({ length: 12 }, (_, i) => ({
       id: i,
       x: Math.random() * 100,
       height: Math.random() * 150 + 80,
       speed: Math.random() * 10 + 8,
       delay: Math.random() * 8,
-    }))
-    setStreams(newStreams)
+    })))
   }, [])
 
   return (

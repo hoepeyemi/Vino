@@ -1,4 +1,36 @@
+# ─────────────────────────────────────────────────────────────────────────────
+# vino — production docker-compose  (used on the Ubuntu server)
+#
+# Before running:
+#   1. Place ~/vino/.env.app and ~/vino/.env.agent on the server.
+#      (copy from server/.env.app and server/.env.agent in this repo)
+#   2. Set DOCKER_USERNAME in your shell:  export DOCKER_USERNAME=<hub-username>
+#   3. docker compose pull && docker compose up -d
+#
+# The CI/CD pipeline (ci.yml) deploys via `docker run` directly, not compose.
+# This file is for manual re-deployments or local smoke-testing of images.
+# ─────────────────────────────────────────────────────────────────────────────
+
 services:
+  vino-agent:
+    image: ${DOCKER_USERNAME}/vino-agent:latest
+    container_name: vino-agent
+    restart: unless-stopped
+    ports:
+      - "8080:8080"
+    env_file: .env.agent
+    volumes:
+      # Persist L2/L3 memory files across container restarts
+      - agent-data:/app/agent/data
+    networks:
+      - vino-net
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://127.0.0.1:8080/health"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 40s
+
   vino-app:
     image: ${DOCKER_USERNAME}/vino-app:latest
     container_name: vino-app
@@ -18,21 +50,10 @@ services:
       retries: 3
       start_period: 40s
 
-  vino-agent:
-    image: ${DOCKER_USERNAME}/vino-agent:latest
-    container_name: vino-agent
-    restart: unless-stopped
-    ports:
-      - "8080:8080"
-    env_file: .env.agent
-    networks:
-      - vino-net
-    healthcheck:
-      test: ["CMD", "wget", "-qO-", "http://127.0.0.1:8080/health"]
-      interval: 30s
-      timeout: 5s
-      retries: 3
-      start_period: 40s
+volumes:
+  agent-data:
+    # Named volume — Docker manages the path.  Data survives container restarts
+    # and image upgrades.  Location: /var/lib/docker/volumes/vino_agent-data/
 
 networks:
   vino-net:

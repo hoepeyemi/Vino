@@ -1,13 +1,12 @@
 'use client';
 
-import { useAccount, useChainId, useSwitchChain } from 'wagmi';
+import { useAccount, useChainId } from 'wagmi';
 import { SUPPORTED_CHAINS } from '@/lib/wagmi';
 import { areContractsDeployed, getChainMeta } from '@/lib/contracts/addresses';
 
 export function NetworkWarning() {
   const { isConnected } = useAccount();
   const chainId = useChainId();
-  const { switchChain, isPending } = useSwitchChain();
 
   if (!isConnected) return null;
 

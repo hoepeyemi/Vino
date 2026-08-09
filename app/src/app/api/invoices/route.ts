@@ -35,9 +35,7 @@ function formatStrategy(strategy: number): string {
 
 export async function GET() {
   try {
-    console.log("[api/invoices] fetching active invoices...")
     const activeInvoices = await getActiveInvoices()
-    console.log("[api/invoices] getActiveInvoices returned", activeInvoices.length, "ids")
 
     const invoices = await Promise.all(
       activeInvoices.map(async (tokenId) => {

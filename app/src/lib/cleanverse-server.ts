@@ -18,6 +18,14 @@ export const CLEANVERSE_API_KEY = process.env.CLEANVERSE_API_KEY
 export const CLEANVERSE_API_URL =
   process.env.CLEANVERSE_API_URL ?? 'https://uatapi.cleanverse.com/api/cooperate'
 
+/** Default MockCVI contract address (Monad Testnet). Override via MOCK_CVI_ADDRESS env var. */
+export const DEFAULT_MOCK_CVI_ADDRESS =
+  process.env.MOCK_CVI_ADDRESS ?? '0x98DbA1d179b013342C2f63Ef551Cf72de4bb64e3'
+
+/** Default Monad Testnet RPC URL. Override via NEXT_PUBLIC_MONAD_TESTNET_RPC env var. */
+export const DEFAULT_RPC_URL =
+  process.env.NEXT_PUBLIC_MONAD_TESTNET_RPC ?? 'https://testnet-rpc.monad.xyz'
+
 export function isCleanverseConfigured(): boolean {
   return Boolean(CLEANVERSE_API_ID && CLEANVERSE_API_KEY)
 }

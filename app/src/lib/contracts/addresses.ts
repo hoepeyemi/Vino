@@ -174,6 +174,28 @@ export function getChainMeta(chainId: number): ChainMeta | undefined {
   return CHAIN_META[chainId as ChainId]
 }
 
+/** Default MockCVI deployment on Monad Testnet. */
+const DEFAULT_MOCK_CVI_ADDRESS = '0x98DbA1d179b013342C2f63Ef551Cf72de4bb64e3' as `0x${string}`
+
+/**
+ * Returns the MockCVI contract address for the connected chain.
+ * - Monad Testnet / Local: reads NEXT_PUBLIC_MOCK_CVI_ADDRESS, falls back to the
+ *   hardcoded default deployment.
+ * - All other chains: returns the zero address (MockCVI is not deployed there).
+ *
+ * Safe to call in client components — reads only NEXT_PUBLIC_* env vars.
+ */
+export function getMockCVIAddress(chainId?: number): `0x${string}` {
+  if (
+    chainId !== undefined &&
+    chainId !== CHAIN_IDS.MONAD_TESTNET &&
+    chainId !== CHAIN_IDS.LOCAL
+  ) {
+    return ZERO
+  }
+  return (process.env.NEXT_PUBLIC_MOCK_CVI_ADDRESS || DEFAULT_MOCK_CVI_ADDRESS) as `0x${string}`
+}
+
 export function isValidContractAddress(address: string): boolean {
   if (!address) return false
   if (address === ZERO) return false

@@ -47,7 +47,7 @@ export function RiskDistribution({ data, className }: RiskDistributionProps) {
               padding: '8px 12px',
             }}
             labelStyle={{ color: 'hsl(var(--foreground))' }}
-            formatter={((value: number | undefined, name: string, props: any) =>
+            formatter={((value: number | undefined, _name: string, _props: any) =>
               value !== undefined ? [
                 `${value} invoices (${((value / total) * 100).toFixed(1)}%)`,
                 'Count',

@@ -74,7 +74,7 @@ export function ProcessingState({
       } else {
         setManualCheckResult('Transaction still pending. Please wait...');
       }
-    } catch (error) {
+    } catch {
       setManualCheckResult('Could not fetch transaction status. Check the block explorer.');
     } finally {
       setManualCheckLoading(false);
@@ -83,10 +83,10 @@ export function ProcessingState({
 
   return (
     <Dialog open={open} onOpenChange={() => {}}>
-      <DialogContent className="glass border-glass-border max-w-md">
+      <DialogContent className="max-w-md">
         <DialogTitle className="sr-only">Transaction Processing</DialogTitle>
         <div className="text-center py-8">
-          <div className="w-20 h-20 rounded-full bg-gradient-to-br from-primary/20 to-accent/20 flex items-center justify-center mx-auto mb-6">
+          <div className="w-20 h-20 rounded-full border border-[#10b981]/20 bg-[#10b981]/10 flex items-center justify-center mx-auto mb-6">
             <Loader2 className="w-10 h-10 text-primary animate-spin" />
           </div>
           <h2 className="text-2xl font-bold mb-3">Processing</h2>

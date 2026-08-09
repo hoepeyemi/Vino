@@ -33,6 +33,7 @@ jobs:
       - name: Install dependencies
         run: pnpm install --no-frozen-lockfile
 
+      # ── Agent checks ──────────────────────────────────────────────────────
       - name: Typecheck agent
         run: cd agent && pnpm tsc --noEmit
 
@@ -41,6 +42,13 @@ jobs:
 
       - name: Build agent (smoke test)
         run: cd agent && pnpm build
+
+      # ── App checks ────────────────────────────────────────────────────────
+      - name: Typecheck app
+        run: cd app && node_modules/.bin/tsc --noEmit
+
+      - name: Lint app
+        run: cd app && node_modules/.bin/eslint src/ --ext .ts,.tsx --max-warnings 0
 
 # ──────────────────────────────────────────────────────────────────────────────
 # Job 2: Build Docker images and push to Docker Hub (push to main only)
@@ -76,9 +84,10 @@ jobs:
           tags: ${{ env.APP_IMAGE }}
           cache-from: type=gha,scope=vino-app
           cache-to: type=gha,mode=max,scope=vino-app
-          # Contract addresses are baked as real values in Dockerfile.web.
-          # Three server-specific vars (WS_URL, APP_URL, WC_PROJECT_ID) use
-          # placeholder strings replaced by docker-entrypoint.sh at startup.
+          # Public contract addresses are baked in Dockerfile.web ENV instructions.
+          # Three server-specific NEXT_PUBLIC_* vars use placeholder strings
+          # replaced at startup by docker-entrypoint.sh from .env.app.
+          # No build secrets are needed here — secrets stay on the server only.
 
       - name: Build and push agent image
         uses: docker/build-push-action@v5
@@ -91,7 +100,7 @@ jobs:
           cache-to: type=gha,mode=max,scope=vino-agent
 
 # ──────────────────────────────────────────────────────────────────────────────
-# Job 3: Deploy both containers to Ubuntu server
+# Job 3: Deploy both containers to Ubuntu server via SSH
 # ──────────────────────────────────────────────────────────────────────────────
   deploy:
     name: Deploy to Ubuntu Server
@@ -115,32 +124,36 @@ jobs:
             echo "=== Deployment started: $(date -u '+%Y-%m-%d %H:%M:%S UTC') ==="
 
             APP_DIR="$HOME/vino"
-            APP_ENV=$APP_DIR/.env.app
-            AGENT_ENV=$APP_DIR/.env.agent
+            APP_ENV="$APP_DIR/.env.app"
+            AGENT_ENV="$APP_DIR/.env.agent"
 
-            # Validate env files
+            # Validate env files exist before pulling images
             if [ ! -f "$APP_ENV" ]; then
               echo "ERROR: Missing app env file: $APP_ENV"
+              echo "       Copy server/.env.app from the repo and fill in the blanks."
               exit 1
             fi
             if [ ! -f "$AGENT_ENV" ]; then
               echo "ERROR: Missing agent env file: $AGENT_ENV"
+              echo "       Copy server/.env.agent from the repo and fill in the blanks."
               exit 1
             fi
 
             # Ensure Docker network exists
             docker network create vino-net 2>/dev/null || true
 
+            # Ensure agent data directory exists (persists L2/L3 memory)
+            mkdir -p "$HOME/vino/agent-data"
+
             # ── Pull latest images ─────────────────────────────────────────
             echo "Pulling images..."
             docker pull "$APP_IMAGE"
             docker pull "$AGENT_IMAGE"
 
-            # ── Deploy agent first (app depends on it) ─────────────────────
+            # ── Deploy agent first (app health-checks depend on agent WS) ──
             echo "Deploying agent..."
             docker stop vino-agent 2>/dev/null || true
             docker rm   vino-agent 2>/dev/null || true
-            mkdir -p "$HOME/vino/agent-data"
             docker run -d \
               --name vino-agent \
               --restart unless-stopped \
@@ -150,7 +163,7 @@ jobs:
               -v "$HOME/vino/agent-data:/app/agent/data" \
               "$AGENT_IMAGE"
 
-            # Wait for agent to become healthy (max 2 min)
+            # Wait for agent health endpoint (max 2 min)
             echo "Waiting for agent to become healthy..."
             for i in $(seq 1 24); do
               if curl -fsS http://127.0.0.1:8080/health >/dev/null 2>&1; then
@@ -177,7 +190,7 @@ jobs:
               --env-file "$APP_ENV" \
               "$APP_IMAGE"
 
-            # Wait for app to become healthy (max 2 min)
+            # Wait for app health endpoint (max 2 min)
             echo "Waiting for app to become healthy..."
             for i in $(seq 1 24); do
               if curl -fsS http://127.0.0.1:3000/health >/dev/null 2>&1; then
@@ -192,7 +205,7 @@ jobs:
               sleep 5
             done
 
-            # ── Cleanup old images ─────────────────────────────────────────
+            # ── Cleanup dangling images ────────────────────────────────────
             docker image prune -f
 
             # ── Final status ───────────────────────────────────────────────
@@ -212,7 +225,7 @@ jobs:
             set -e
             echo "=== Post-deploy verification ==="
 
-            for svc in vino-app vino-agent; do
+            for svc in vino-agent vino-app; do
               status=$(docker inspect "$svc" --format='{{.State.Status}}' 2>/dev/null || echo "not found")
               if [ "$status" != "running" ]; then
                 echo "FAIL: $svc is $status"

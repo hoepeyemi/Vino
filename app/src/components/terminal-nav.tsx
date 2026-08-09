@@ -5,9 +5,11 @@ import { usePathname } from "next/navigation"
 import { useAccount, useConnect, useDisconnect, useChainId } from "wagmi"
 import { injected } from "wagmi/connectors"
 import { useState, useEffect } from "react"
+import { Shield } from "lucide-react"
 import { ThemeToggle } from "@/components/theme-toggle"
 import { cn } from "@/lib/utils"
 import { getChainMeta } from "@/lib/contracts/addresses"
+import { useCleanverseCVI } from "@/hooks/use-cleanverse-cvi"
 
 const navItems = [
   { href: "/dashboard", label: "portfolio" },
@@ -24,6 +26,7 @@ export function TerminalNav() {
   const { disconnect } = useDisconnect()
   const chainId = useChainId()
   const [mounted, setMounted] = useState(false)
+  const { state: cviState } = useCleanverseCVI()
 
   const meta = getChainMeta(chainId)
   const chainLabel = meta?.shortName || (chainId === 31337 ? 'LOCAL' : 'EVM')
@@ -69,6 +72,35 @@ export function TerminalNav() {
 
       <div className="flex items-center gap-3">
         <ThemeToggle />
+
+        {/* CVI status badge — always-visible compliance indicator.
+            Green = query_apass live (Cleanverse).
+            Purple = MockCVI.isVerified() on-chain fallback. */}
+        {mounted && isConnected && (
+          cviState.status === 'verified' ? (
+            cviState.source === 'mock-cvi-onchain' ? (
+              <span className="hidden md:inline-flex items-center gap-1 px-2 py-0.5 rounded border border-[#836EF9]/30 bg-[#836EF9]/10 text-[10px] text-[#836EF9] font-semibold uppercase tracking-wider" title="CVI via MockCVI.isVerified() on-chain">
+                <Shield className="w-2.5 h-2.5" />
+                ⛓ CVI T{cviState.tier}
+              </span>
+            ) : (
+              <span className="hidden md:inline-flex items-center gap-1 px-2 py-0.5 rounded border border-[#10b981]/30 bg-[#10b981]/10 text-[10px] text-[#10b981] font-semibold uppercase tracking-wider" title="CVI via query_apass (Cleanverse)">
+                <Shield className="w-2.5 h-2.5" />
+                CVI T{cviState.tier}
+              </span>
+            )
+          ) : cviState.status === 'loading' ? (
+            <span className="hidden md:inline-flex items-center gap-1 px-2 py-0.5 rounded border border-[#1f1f1f] text-[10px] text-[#444444]">
+              <Shield className="w-2.5 h-2.5" />
+              CVI…
+            </span>
+          ) : cviState.status === 'unverified' ? (
+            <Link href="/dashboard/mint" className="hidden md:inline-flex items-center gap-1 px-2 py-0.5 rounded border border-[#f59e0b]/30 bg-[#f59e0b]/10 text-[10px] text-[#f59e0b] font-semibold hover:bg-[#f59e0b]/20 transition-colors">
+              <Shield className="w-2.5 h-2.5" />
+              KYB
+            </Link>
+          ) : null
+        )}
 
         {mounted && isConnected && address ? (
           <button

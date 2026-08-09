@@ -1,7 +1,7 @@
 "use client"
 
 import { useReadContract, useWriteContract, useWaitForTransactionReceipt, useChainId } from "wagmi"
-import { AgentRouterABI, type AgentDecision, type AgentConfig, Strategy } from "@/lib/contracts/abis"
+import { AgentRouterABI, Strategy } from "@/lib/contracts/abis"
 import { getAgentRouterAddress } from "@/lib/contracts/addresses"
 
 export function useAgentRouter() {

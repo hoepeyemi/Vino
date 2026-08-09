@@ -1,4 +1,3 @@
-import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Label } from '@/components/ui/label';
 import { Radio } from 'lucide-react';
@@ -25,17 +24,19 @@ export function StrategySelector({
           const isSelected = selectedStrategy === strategy.id;
 
           return (
-            <Card
+            <div
               key={strategy.id}
-              className={`glass border-glass-border p-4 cursor-pointer transition-all hover:border-primary/30 hover:shadow-lg ${
-                isSelected ? 'border-primary bg-primary/5' : ''
+              className={`rounded border p-4 cursor-pointer transition-all ${
+                isSelected
+                  ? 'border-[#10b981] bg-[#10b981]/10'
+                  : 'border-[#1f1f1f] hover:border-[#10b981]/40'
               }`}
               onClick={() => onSelectStrategy(strategy.id)}
             >
               <div className="flex items-start justify-between">
                 <div className="flex-1">
                   <div className="flex items-center gap-3 mb-2">
-                    <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-primary/20 to-accent/20 flex items-center justify-center">
+                    <div className="w-10 h-10 rounded-lg border border-[#10b981]/20 bg-[#10b981]/10 flex items-center justify-center">
                       <Icon className="w-5 h-5 text-primary" />
                     </div>
                     <div className="flex-1">
@@ -81,7 +82,7 @@ export function StrategySelector({
                   {isSelected && <div className="w-2 h-2 rounded-full bg-white" />}
                 </div>
               </div>
-            </Card>
+            </div>
           );
         })}
       </div>

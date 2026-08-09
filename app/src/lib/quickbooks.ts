@@ -111,8 +111,6 @@ export async function exchangeCodeForTokens(
   })
 
   const responseText = await response.text()
-  console.log(`[QB token exchange] status=${response.status} url=${response.url} redirected=${response.redirected}`)
-  console.log(`[QB token exchange] body=${responseText.slice(0, 300)}`)
 
   if (!response.ok) {
     throw new Error(`Token exchange failed (${response.status}): ${responseText}`)

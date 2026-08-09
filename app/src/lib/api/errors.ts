@@ -288,8 +288,5 @@ export function logError(error: unknown, context?: Record<string, any>) {
     originalError: contractError.originalError,
   })
 
-  // TODO: Send to error tracking service in production
-  // if (process.env.NODE_ENV === 'production') {
-  //   Sentry.captureException(error, { extra: { ...context, contractError } })
-  // }
+  // Wire up an error-tracking SDK (Sentry, Datadog, etc.) here when moving to production.
 }

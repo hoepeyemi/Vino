@@ -6,17 +6,19 @@
  * ALIVE: Grid background, stagger animations, pulse effects
  */
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useCallback } from "react"
 import Link from "next/link"
 import { useAccount } from "wagmi"
 import { useInvoiceNFT } from "@/hooks/use-invoice-nft"
 import { useYieldVault } from "@/hooks/use-yield-vault"
+import { useCleanverseCVI } from "@/hooks/use-cleanverse-cvi"
 import { formatUnits } from "viem"
-import { Plus, ArrowUpRight, RefreshCw } from "lucide-react"
+import { Plus, ArrowUpRight, RefreshCw, Shield, ShieldCheck, ShieldAlert } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { StatusBar } from "@/components/ui/status-bar"
 import { TerminalNav } from "@/components/terminal-nav"
 import { MiniActivityFeed } from "@/components/mini-activity-feed"
+import { loadInvoiceMetadata } from "@/lib/invoice-metadata"
 
 interface InvoiceResponse {
   tokenId: string
@@ -70,12 +72,16 @@ export default function Dashboard() {
   // Live accrued yield summed from all active deposits (contract's totalYieldGenerated
   // only increments on withdrawal, so it reads 0 while yield is still accruing).
   const [liveAccruedYield, setLiveAccruedYield] = useState(0)
+  // CVA settlement symbol per invoice (tokenId → symbol).
+  // Loaded from localStorage in a useEffect — never called synchronously in render.
+  const [invoiceCvaMap, setInvoiceCvaMap] = useState<Record<string, string>>({})
 
   const { isConnected } = useAccount()
   const { totalInvoices } = useInvoiceNFT()
   const { tvl, activeDepositsCount, conservativeAPY, aggressiveAPY } = useYieldVault()
+  const { state: cviState } = useCleanverseCVI()
 
-  const fetchInvoices = async () => {
+  const fetchInvoices = useCallback(async () => {
     if (!isConnected) {
       setInvoices([])
       setIsLoading(false)
@@ -125,25 +131,35 @@ export default function Dashboard() {
     } finally {
       setIsLoading(false)
     }
-  }
-
-  useEffect(() => {
-    fetchInvoices()
   }, [isConnected, conservativeAPY, aggressiveAPY])
 
   useEffect(() => {
-    const refresh = () => {
-      void fetchInvoices()
-    }
+    fetchInvoices()
+  }, [fetchInvoices])
 
+  // Load CVA metadata for all invoices after the invoice list updates.
+  // Kept in a separate effect so localStorage reads never block the render thread.
+  useEffect(() => {
+    if (typeof window === 'undefined') return
+    const map: Record<string, string> = {}
+    invoices.forEach(inv => {
+      const meta = loadInvoiceMetadata(inv.tokenId)
+      if (meta?.settlementSymbol) {
+        map[inv.tokenId] = meta.settlementSymbol
+      }
+    })
+    setInvoiceCvaMap(map)
+  }, [invoices])
+
+  useEffect(() => {
+    const refresh = () => { void fetchInvoices() }
     window.addEventListener("focus", refresh)
     document.addEventListener("visibilitychange", refresh)
-
     return () => {
       window.removeEventListener("focus", refresh)
       document.removeEventListener("visibilitychange", refresh)
     }
-  }, [isConnected, conservativeAPY, aggressiveAPY])
+  }, [fetchInvoices])
 
   const filteredInvoices = invoices.filter((inv) =>
     inv.id.toLowerCase().includes(searchQuery.toLowerCase())
@@ -177,6 +193,66 @@ export default function Dashboard() {
             </Button>
           </Link>
         </div>
+
+        {/* CVI status strip — shows live Cleanverse identity state */}
+        {isConnected && cviState.status !== 'idle' && cviState.status !== 'unconfigured' && (
+          <div className="flex items-center gap-3 mb-4 p-2.5 rounded border border-[#1a1a1a] bg-[#0d0d0d] text-[10px] font-mono">
+            {cviState.status === 'loading' && (
+              <>
+                <Shield className="w-3 h-3 text-[#444444] animate-pulse" />
+                <span className="text-[#444444]">checking Cleanverse CVI status…</span>
+              </>
+            )}
+            {cviState.status === 'verified' && (
+              <>
+                <ShieldCheck className="w-3 h-3 text-[#10b981]" />
+                <span className="text-[#10b981] font-semibold">A-Pass verified</span>
+                <span className="text-[#333333]">·</span>
+                <span className="text-[#555555]">Tier {cviState.tier}</span>
+                <span className="text-[#333333]">·</span>
+                <span className="text-[#444444]">expires {new Date(cviState.expirationTime * 1000).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}</span>
+                {cviState.countries.length > 0 && (
+                  <>
+                    <span className="text-[#333333]">·</span>
+                    <span className="text-[#444444] truncate hidden sm:block">
+                      {cviState.countries.slice(0, 3).join(', ')}
+                      {cviState.countries.length > 3 && ` +${cviState.countries.length - 3}`}
+                    </span>
+                  </>
+                )}
+                <span className="ml-auto flex items-center gap-2">
+                  <span className={`text-[9px] font-mono px-1.5 py-0.5 rounded border ${
+                    cviState.source === 'cleanverse'
+                      ? 'border-[#10b981]/30 bg-[#10b981]/10 text-[#10b981]'
+                      : cviState.source === 'mock-cvi-onchain'
+                        ? 'border-[#836EF9]/30 bg-[#836EF9]/10 text-[#836EF9]'
+                        : 'border-[#1f1f1f] bg-[#111111] text-[#444444]'
+                  }`}>
+                    {cviState.source === 'cleanverse'
+                      ? '✓ query_apass'
+                      : cviState.source === 'mock-cvi-onchain'
+                        ? '✓ MockCVI'
+                        : 'local'}
+                  </span>
+                  <span className="flex items-center gap-1 text-[#10b981]/50">
+                    <span className="w-1 h-1 rounded-full bg-[#10b981]" />
+                    mint · settle · travel_rule
+                  </span>
+                </span>
+              </>
+            )}
+            {cviState.status === 'unverified' && (
+              <>
+                <ShieldAlert className="w-3 h-3 text-[#f59e0b]" />
+                <span className="text-[#f59e0b]">KYB unverified</span>
+                <span className="text-[#333333]">·</span>
+                <Link href="/dashboard/mint" className="text-[#f59e0b] hover:underline underline-offset-2">
+                  complete verification →
+                </Link>
+              </>
+            )}
+          </div>
+        )}
 
         <div className="stats-grid grid-cols-4 mb-6 stagger-2">
           <div className="stat-cell">
@@ -246,19 +322,58 @@ export default function Dashboard() {
               </Button>
             </div>
           ) : filteredInvoices.length === 0 ? (
-            <div className="p-8 text-center">
-              <div className="flex items-center justify-center gap-2 mb-4">
-                <span className="w-1.5 h-1.5 rounded-full bg-[#10b981] status-pulse" />
-                <span className="text-[10px] text-[#666666] uppercase tracking-wider">Agent Standing By</span>
+            <div className="p-6">
+              {/* Protocol concept — shown to first-time users and hackathon judges */}
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-6">
+                <div className="p-3 rounded border border-[#1f1f1f] bg-[#111111]">
+                  <div className="text-[10px] text-[#10b981] font-semibold uppercase tracking-[0.15em] mb-1.5">① CVI Gating</div>
+                  <div className="text-[10px] text-[#555555] leading-relaxed">KYB via Cleanverse A-Pass. Only verified wallets can mint or receive settlement.</div>
+                </div>
+                <div className="p-3 rounded border border-[#1f1f1f] bg-[#111111]">
+                  <div className="text-[10px] text-[#10b981] font-semibold uppercase tracking-[0.15em] mb-1.5">② CVA Settlement</div>
+                  <div className="text-[10px] text-[#555555] leading-relaxed">Buyers settle with Cleanverse Verified Assets. FATF Rec-16 Travel Rule enforced.</div>
+                </div>
+                <div className="p-3 rounded border border-[#1f1f1f] bg-[#111111]">
+                  <div className="text-[10px] text-[#10b981] font-semibold uppercase tracking-[0.15em] mb-1.5">③ AI Yield</div>
+                  <div className="text-[10px] text-[#555555] leading-relaxed">Agent monitors risk on Monad (10 k TPS) and auto-switches Aave V3 strategies on-chain.</div>
+                </div>
               </div>
-              <div className="text-xs text-[#666666] mb-2">no invoices yet</div>
-              <div className="text-[11px] text-[#444444] mb-6">mint your first invoice to start earning yield</div>
-              <Link href="/dashboard/mint">
-                <Button size="sm">
-                  <Plus className="w-3 h-3" />
-                  mint invoice
-                </Button>
-              </Link>
+              {/* 5-minute demo path for hackathon judges */}
+              <div className="mb-5 p-3 rounded border border-[#10b981]/20 bg-[#10b981]/5">
+                <div className="text-[10px] text-[#10b981] font-semibold uppercase tracking-[0.15em] mb-2">5-minute demo path</div>
+                <div className="space-y-1 text-[10px] text-[#555555]">
+                  <div className="flex items-center gap-2">
+                    <span className="text-[#10b981] font-mono">①</span>
+                    <span>Connect MetaMask → CVI badge in nav triggers <span className="text-[#888888]">query_apass</span> automatically</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <span className="text-[#10b981] font-mono">②</span>
+                    <Link href="/dashboard/mint" className="text-[#10b981] hover:underline underline-offset-2">Go to Mint →</Link>
+                    <span>complete KYB · select USDC CVA A-Token · submit</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <span className="text-[#10b981] font-mono">③</span>
+                    <span>Open invoice detail → <span className="text-[#888888]">Request Payment</span> (CVA) → <span className="text-[#888888]">generate Travel Rule</span></span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <span className="text-[#10b981] font-mono">④</span>
+                    <Link href="/dashboard/agent" className="text-[#836EF9] hover:underline underline-offset-2">Agent page →</Link>
+                    <span>Cleanverse health panel · Monad 10k TPS stats · auto-execute toggle</span>
+                  </div>
+                </div>
+              </div>
+              <div className="text-center">
+                <div className="flex items-center justify-center gap-2 mb-3">
+                  <span className="w-1.5 h-1.5 rounded-full bg-[#10b981] status-pulse" />
+                  <span className="text-[10px] text-[#666666] uppercase tracking-wider">AI Agent Standing By</span>
+                </div>
+                <Link href="/dashboard/mint">
+                  <Button size="sm">
+                    <Plus className="w-3 h-3" />
+                    mint invoice
+                  </Button>
+                </Link>
+              </div>
             </div>
           ) : (
             <table className="terminal-table">
@@ -282,7 +397,14 @@ export default function Dashboard() {
                     onClick={() => window.location.href = `/dashboard/invoice/${invoice.tokenId}`}
                   >
                     <td className="text-[#10b981] font-semibold">{invoice.id}</td>
-                    <td className="font-semibold tabular-nums">{invoice.amount}</td>
+                    <td className="font-semibold tabular-nums">
+                      <div>{invoice.amount}</div>
+                      {invoiceCvaMap[invoice.tokenId] && (
+                        <div className="text-[10px] text-[#10b981]/70 mt-0.5">
+                          CVA: {invoiceCvaMap[invoice.tokenId]}
+                        </div>
+                      )}
+                    </td>
                     <td className="text-[#666666]">{invoice.dueDate}</td>
                     <td>{invoice.strategy}</td>
                     <td className="tabular-nums">{invoice.apy}</td>

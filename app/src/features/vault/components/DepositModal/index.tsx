@@ -98,7 +98,7 @@ export function DepositModal({
   // Main input form
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="glass border-glass-border max-w-2xl max-h-[90vh] overflow-y-auto">
+      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="text-2xl">Deposit & Earn Yield</DialogTitle>
           {invoiceId && (
@@ -139,14 +139,14 @@ export function DepositModal({
             <Button
               variant="outline"
               onClick={() => onOpenChange(false)}
-              className="flex-1 border-glass-border"
+              className="flex-1 border-[#1f1f1f]"
             >
               Cancel
             </Button>
             <Button
               onClick={handleDeposit}
               disabled={!acceptRisk || !depositAmount || tokenId === undefined || isProcessing}
-              className="flex-1 bg-gradient-to-r from-primary to-accent hover:opacity-90"
+              className="flex-1 bg-[#10b981] text-black hover:bg-[#059669] disabled:bg-[#10b981]/30 disabled:text-black/40"
             >
               Confirm Deposit
             </Button>

@@ -1,19 +1,20 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useMemo, useState } from 'react'
 import { useChainId } from 'wagmi'
 import { validateContractAddresses } from '@/lib/contracts/addresses'
 import { AlertTriangle, X } from 'lucide-react'
 
 export function ConfigValidation() {
   const chainId = useChainId()
-  const [validationErrors, setValidationErrors] = useState<string[]>([])
   const [dismissed, setDismissed] = useState(false)
 
-  useEffect(() => {
-    const { errors } = validateContractAddresses(chainId)
-    setValidationErrors(errors)
-  }, [chainId])
+  // Derive validation errors synchronously from chainId instead of using
+  // useEffect + setState, which would trigger an avoidable extra render cycle.
+  const { errors: validationErrors } = useMemo(
+    () => validateContractAddresses(chainId),
+    [chainId]
+  )
 
   if (validationErrors.length === 0 || dismissed) {
     return null
@@ -37,8 +38,9 @@ export function ConfigValidation() {
               ))}
             </ul>
             <p className="text-xs mt-2 opacity-75">
-              Check your <code className="bg-destructive-foreground/10 px-1 rounded">.env.local</code> file
-              or environment variables.
+              Check your{' '}
+              <code className="bg-destructive-foreground/10 px-1 rounded">.env.local</code>{' '}
+              file or environment variables.
             </p>
           </div>
         </div>

@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useEffect, useRef, useState } from 'react'
+import React, { useCallback, useEffect, useRef, useState } from 'react'
 import { cn } from '@/lib/utils'
 
 interface AnimatedCounterProps {
@@ -24,6 +24,28 @@ export function AnimatedCounter({
   const [hasAnimated, setHasAnimated] = useState(false)
   const elementRef = useRef<HTMLSpanElement>(null)
 
+  // Declared before the effect that calls it so the reference is stable.
+  const animateValue = useCallback((endValue: number) => {
+    const startTime = performance.now()
+
+    const animate = (currentTime: number) => {
+      const elapsed = currentTime - startTime
+      const progress = Math.min(elapsed / duration, 1)
+
+      // Cubic easing: 1 - (1 - t)³
+      const easedProgress = 1 - Math.pow(1 - progress, 3)
+      setDisplayValue(endValue * easedProgress)
+
+      if (progress < 1) {
+        requestAnimationFrame(animate)
+      } else {
+        setDisplayValue(endValue)
+      }
+    }
+
+    requestAnimationFrame(animate)
+  }, [duration])
+
   useEffect(() => {
     const element = elementRef.current
     if (!element || hasAnimated) return
@@ -45,31 +67,7 @@ export function AnimatedCounter({
     return () => {
       observer.disconnect()
     }
-  }, [value, hasAnimated])
-
-  const animateValue = (endValue: number) => {
-    const startValue = 0
-    const startTime = performance.now()
-
-    const animate = (currentTime: number) => {
-      const elapsed = currentTime - startTime
-      const progress = Math.min(elapsed / duration, 1)
-
-      // Cubic easing: 1 - (1 - t)³
-      const easedProgress = 1 - Math.pow(1 - progress, 3)
-
-      const currentValue = startValue + (endValue - startValue) * easedProgress
-      setDisplayValue(currentValue)
-
-      if (progress < 1) {
-        requestAnimationFrame(animate)
-      } else {
-        setDisplayValue(endValue)
-      }
-    }
-
-    requestAnimationFrame(animate)
-  }
+  }, [value, hasAnimated, animateValue])
 
   const formattedValue = displayValue.toFixed(decimals)
 

@@ -2,23 +2,66 @@
  * POST /api/cleanverse/verify
  *
  * Checks whether a wallet has a valid Cleanverse A-Pass.
- * Uses POST /query_apass (A-Pass Management module, supports Monad).
+ *
+ * Fallback hierarchy:
+ *   1. Cleanverse POST /query_apass  — authoritative; plain JSON body (no AES-CBC).
+ *   2. MockCVI.isVerified()          — on-chain fallback when Cleanverse API is
+ *      unreachable or returns a network error; returns source:'mock-cvi-onchain'.
  *
  * Body:   { address: string, chain?: string }
  * Returns:
- *   { verified: true,  tier: string, expirationTime: number, countries: string[] }
- *   { verified: false, reason: "not_found" | "frozen" | "expired" | "unconfigured" | "api_error" | "rate_limited" }
+ *   { verified: true,  tier, expirationTime, countries, source }
+ *   { verified: false, reason: "not_found"|"frozen"|"expired"|"unconfigured"|"api_error"|"rate_limited", source }
  */
 
 import { NextRequest, NextResponse } from 'next/server'
-import crypto from 'crypto'
-import { RateLimiter } from '@/lib/cleanverse-server'
+import { createPublicClient, http, parseAbi, defineChain, type Address } from 'viem'
+import {
+  CLEANVERSE_API_URL,
+  cleanverseHeaders,
+  isCleanverseConfigured,
+  RateLimiter,
+  DEFAULT_MOCK_CVI_ADDRESS,
+  DEFAULT_RPC_URL,
+} from '@/lib/cleanverse-server'
 
-const API_ID  = process.env.CLEANVERSE_API_ID
-const API_URL = process.env.CLEANVERSE_API_URL ?? 'https://uatapi.cleanverse.com/api/cooperate'
-
-// Rate limit: 20 requests per IP per minute
+// 20 requests per IP per minute
 const verifyRL = new RateLimiter(20, 60_000)
+
+const MOCK_CVI_ADDRESS = DEFAULT_MOCK_CVI_ADDRESS as Address
+const RPC_URL          = DEFAULT_RPC_URL
+
+const monadTestnet = defineChain({
+  id: 10143,
+  name: 'Monad Testnet',
+  nativeCurrency: { name: 'Monad', symbol: 'MON', decimals: 18 },
+  rpcUrls: { default: { http: [RPC_URL] } },
+})
+
+const MOCK_CVI_ABI = parseAbi([
+  'function isVerified(address wallet) view returns (bool)',
+])
+
+/** Check on-chain CVI status — fallback when Cleanverse API is unavailable. */
+async function checkMockCvi(address: string): Promise<boolean> {
+  try {
+    const client = createPublicClient({ chain: monadTestnet, transport: http(RPC_URL) })
+    return await client.readContract({
+      address: MOCK_CVI_ADDRESS,
+      abi: MOCK_CVI_ABI,
+      functionName: 'isVerified',
+      args: [address as Address],
+    })
+  } catch {
+    return false
+  }
+}
+
+// Synthetic A-Pass data returned when MockCVI confirms on-chain approval
+// (the actual tier/expiry is not stored on-chain — we return safe defaults)
+const ONCHAIN_FALLBACK_TIER             = '1'
+const ONCHAIN_FALLBACK_EXPIRY_DAYS      = 365
+const ONCHAIN_FALLBACK_COUNTRIES: string[] = []
 
 export async function POST(req: NextRequest) {
   const ip = req.headers.get('x-forwarded-for')?.split(',')[0]?.trim() ?? 'unknown'
@@ -34,18 +77,16 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'valid address required' }, { status: 400 })
   }
 
-  if (!API_ID) {
+  if (!isCleanverseConfigured()) {
     return NextResponse.json({ verified: false, reason: 'unconfigured' })
   }
 
+  // ── 1. Try Cleanverse query_apass ──────────────────────────────────────────
   try {
-    const res = await fetch(`${API_URL}/query_apass`, {
+    // query_apass is a read endpoint — plain JSON body, no AES-CBC encryption required.
+    const res = await fetch(`${CLEANVERSE_API_URL}/query_apass`, {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'api-id': API_ID,
-        'X-Request-ID': crypto.randomUUID(),
-      },
+      headers: cleanverseHeaders(),   // api-id + X-Request-ID
       body: JSON.stringify({ chain, address }),
       signal: AbortSignal.timeout(15_000),
     })
@@ -58,10 +99,10 @@ export async function POST(req: NextRequest) {
       const now = Math.floor(Date.now() / 1000)
 
       if (apass.status === 2) {
-        return NextResponse.json({ verified: false, reason: 'frozen' })
+        return NextResponse.json({ verified: false, reason: 'frozen', source: 'cleanverse' })
       }
       if (apass.expirationTime < now) {
-        return NextResponse.json({ verified: false, reason: 'expired' })
+        return NextResponse.json({ verified: false, reason: 'expired', source: 'cleanverse' })
       }
 
       return NextResponse.json({
@@ -69,11 +110,30 @@ export async function POST(req: NextRequest) {
         tier: apass.tier,
         expirationTime: apass.expirationTime,
         countries: apass.countries ?? [],
+        source: 'cleanverse',
       })
     }
 
-    return NextResponse.json({ verified: false, reason: 'not_found' })
+    // Non-0000 code means no A-Pass record in Cleanverse — definitive not_found.
+    return NextResponse.json({ verified: false, reason: 'not_found', source: 'cleanverse' })
   } catch {
-    return NextResponse.json({ verified: false, reason: 'api_error' })
+    // Network error — fall through to on-chain fallback.
   }
+
+  // ── 2. Fallback: MockCVI.isVerified() on Monad ────────────────────────────
+  // If the wallet was previously verified on-chain (e.g. via the onboard flow)
+  // we can still gate it correctly even when Cleanverse API is temporarily down.
+  const onChain = await checkMockCvi(address)
+  if (onChain) {
+    const expiresAt = Math.floor(Date.now() / 1000) + ONCHAIN_FALLBACK_EXPIRY_DAYS * 86400
+    return NextResponse.json({
+      verified: true,
+      tier: ONCHAIN_FALLBACK_TIER,
+      expirationTime: expiresAt,
+      countries: ONCHAIN_FALLBACK_COUNTRIES,
+      source: 'mock-cvi-onchain',
+    })
+  }
+
+  return NextResponse.json({ verified: false, reason: 'api_error', source: 'local' })
 }

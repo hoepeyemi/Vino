@@ -15,7 +15,7 @@ export function DepositSummary({
     selectedStrategy.charAt(0).toUpperCase() + selectedStrategy.slice(1);
 
   return (
-    <div className="p-4 bg-muted/30 rounded-lg border border-glass-border text-sm">
+    <div className="p-4 bg-[#10b981]/5 rounded-lg border border-[#10b981]/20 text-sm">
       <p className="font-medium mb-2">You&apos;re about to:</p>
       <ul className="space-y-1 text-muted-foreground">
         <li>

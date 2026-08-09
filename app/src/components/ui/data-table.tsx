@@ -10,7 +10,6 @@ import {
   TableRow,
 } from './table'
 import { Input } from './input'
-import { Button } from './button'
 import { Skeleton } from './skeleton'
 import { Search, ChevronUp, ChevronDown, ChevronsUpDown } from 'lucide-react'
 import { cn } from '@/lib/utils'

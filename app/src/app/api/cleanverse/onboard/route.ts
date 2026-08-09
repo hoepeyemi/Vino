@@ -26,11 +26,13 @@ import {
   encryptedBody,
   isCleanverseConfigured,
   RateLimiter,
+  DEFAULT_MOCK_CVI_ADDRESS,
+  DEFAULT_RPC_URL,
 } from '@/lib/cleanverse-server'
 
 const RELAY_KEY = process.env.RELAY_PRIVATE_KEY as `0x${string}` | undefined
-const MOCK_CVI_ADDRESS = (process.env.MOCK_CVI_ADDRESS ?? '0x98DbA1d179b013342C2f63Ef551Cf72de4bb64e3') as Address
-const RPC_URL = process.env.NEXT_PUBLIC_MONAD_TESTNET_RPC ?? 'https://testnet-rpc.monad.xyz'
+const MOCK_CVI_ADDRESS = DEFAULT_MOCK_CVI_ADDRESS as Address
+const RPC_URL = DEFAULT_RPC_URL
 
 const MOCK_CVI_ABI = parseAbi([
   'function isVerified(address wallet) view returns (bool)',

@@ -19,7 +19,15 @@ contracts/out_fast
 coverage
 dist
 build
+# Secrets — root and all subdirectories
 .env
 .env.*
+app/.env
+app/.env.*
+agent/.env
+agent/.env.*
+contracts/.env
+contracts/.env.*
+server/.env.*
 *.log
 *.tsbuildinfo

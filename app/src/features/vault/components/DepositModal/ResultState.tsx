@@ -34,10 +34,10 @@ export function ResultState({
 
     return (
       <Dialog open={open} onOpenChange={onClose}>
-        <DialogContent className="glass border-glass-border max-w-md">
+        <DialogContent className="max-w-md">
           <div className="text-center py-8">
-            <div className="w-20 h-20 rounded-full bg-gradient-to-br from-success/20 to-primary/20 flex items-center justify-center mx-auto mb-6">
-              <CheckCircle2 className="w-10 h-10 text-success" />
+            <div className="w-20 h-20 rounded-full border border-[#10b981]/20 bg-[#10b981]/10 flex items-center justify-center mx-auto mb-6">
+              <CheckCircle2 className="w-10 h-10 text-[#10b981]" />
             </div>
             <h2 className="text-2xl font-bold mb-3">Deposit Successful!</h2>
             <p className="text-muted-foreground mb-2">
@@ -52,7 +52,7 @@ export function ResultState({
                 href={`${explorerUrl}/tx/${depositHash}`}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="inline-flex items-center gap-2 text-sm text-primary hover:underline mb-6"
+                className="inline-flex items-center gap-2 text-sm text-[#10b981] hover:underline mb-6"
               >
                 View on Explorer
                 <ExternalLink className="w-3 h-3" />
@@ -61,7 +61,7 @@ export function ResultState({
             <div className="mt-4">
               <Button
                 onClick={onClose}
-                className="bg-gradient-to-r from-primary to-accent hover:opacity-90"
+                className="bg-[#10b981] text-black hover:bg-[#059669]"
               >
                 Done
               </Button>
@@ -75,7 +75,7 @@ export function ResultState({
   // Error state
   return (
     <Dialog open={open} onOpenChange={onClose}>
-      <DialogContent className="glass border-glass-border max-w-md">
+      <DialogContent className="max-w-md">
         <div className="text-center py-8">
           <div className="w-20 h-20 rounded-full bg-destructive/10 flex items-center justify-center mx-auto mb-6">
             <AlertCircle className="w-10 h-10 text-destructive" />
@@ -88,14 +88,14 @@ export function ResultState({
             <Button
               variant="outline"
               onClick={onClose}
-              className="border-glass-border"
+              className="border-[#1f1f1f]"
             >
               Cancel
             </Button>
             {onRetry && (
               <Button
                 onClick={onRetry}
-                className="bg-gradient-to-r from-primary to-accent hover:opacity-90"
+                className="bg-[#10b981] text-black hover:bg-[#059669]"
               >
                 Try Again
               </Button>

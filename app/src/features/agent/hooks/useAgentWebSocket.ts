@@ -22,7 +22,7 @@ export function useAgentWebSocket() {
   const [thoughts, setThoughts] = useState<AgentThought[]>([]);
   const [connected, setConnected] = useState(false);
   const [connecting, setConnecting] = useState(true);
-  const [retryCount, setRetryCount] = useState(0);
+  const [, setRetryCount] = useState(0);
   const [offline, setOffline] = useState(false);
 
   const wsRef = useRef<WebSocket | null>(null);

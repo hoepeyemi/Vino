@@ -1,7 +1,7 @@
 "use client"
 
 import { useReadContract, useWriteContract, useWaitForTransactionReceipt, useAccount, useChainId } from "wagmi"
-import { YieldVaultABI, InvoiceNFTABI, type Deposit, Strategy } from "@/lib/contracts/abis"
+import { YieldVaultABI, InvoiceNFTABI, Strategy } from "@/lib/contracts/abis"
 import { getYieldVaultAddress, getInvoiceNFTAddress } from "@/lib/contracts/addresses"
 import { formatUnits } from "viem"
 
@@ -117,7 +117,7 @@ export function useDeposit(tokenId: bigint | number | undefined) {
 
 export function useDepositToVault() {
   const chainId = useChainId()
-  const { address } = useAccount()
+  const { address: _address } = useAccount()
   const yieldVaultAddress = getYieldVaultAddress(chainId)
   const invoiceNFTAddress = getInvoiceNFTAddress(chainId)
 

@@ -703,6 +703,38 @@ export const AgentRouterABI = [
   },
 ] as const
 
+/** Minimal MockCVI ABI — only the functions called by the app. */
+export const MockCVIABI = [
+  {
+    name: 'isVerified',
+    type: 'function',
+    stateMutability: 'view',
+    inputs:  [{ name: 'wallet', type: 'address' }],
+    outputs: [{ name: '',       type: 'bool'    }],
+  },
+  {
+    name: 'verify',
+    type: 'function',
+    stateMutability: 'nonpayable',
+    inputs:  [{ name: 'wallet', type: 'address' }],
+    outputs: [],
+  },
+  {
+    name: 'revoke',
+    type: 'function',
+    stateMutability: 'nonpayable',
+    inputs:  [{ name: 'wallet', type: 'address' }],
+    outputs: [],
+  },
+  {
+    name: 'owner',
+    type: 'function',
+    stateMutability: 'view',
+    inputs:  [],
+    outputs: [{ name: '', type: 'address' }],
+  },
+] as const
+
 // Enum types matching the contracts
 export enum InvoiceStatus {
   Active = 0,

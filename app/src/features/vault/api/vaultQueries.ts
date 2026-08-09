@@ -2,8 +2,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { usePublicClient, useWalletClient, useChainId } from 'wagmi';
 import { getContractAddresses } from '@/lib/wagmi';
 import { YieldVaultABI } from '@/lib/abi';
-import { parseUnits } from 'viem';
-import type { Address, Hash } from 'viem';
+import type { Address } from 'viem';
 import { queryKeys } from '@/lib/query/keys';
 
 // Types

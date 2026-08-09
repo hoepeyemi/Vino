@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react"
 import { useReadContract, useWriteContract, useWaitForTransactionReceipt, useAccount, useChainId, usePublicClient, useSwitchChain } from "wagmi"
-import { InvoiceNFTABI, type Invoice, InvoiceStatus } from "@/lib/contracts/abis"
+import { InvoiceNFTABI, InvoiceStatus } from "@/lib/contracts/abis"
 import { getInvoiceNFTAddress } from "@/lib/contracts/addresses"
 import { keccak256, encodePacked, toHex, decodeEventLog, createPublicClient, http } from "viem"
 import { getMonadTestnetRpcUrls } from "@/lib/monad-rpc"
@@ -146,7 +146,7 @@ export function useMintInvoice() {
   const lastHashRef = useRef<string | null>(null)
   const lastForceCheckHashRef = useRef<string | null>(null)
 
-  const { writeContractAsync, writeContract, data: hash, isPending, error } = useWriteContract()
+  const { writeContractAsync, data: hash, isPending, error } = useWriteContract()
 
   const { isLoading: isConfirming, isSuccess, data: receipt } = useWaitForTransactionReceipt({
     hash,
@@ -177,8 +177,6 @@ export function useMintInvoice() {
       console.error(prefix, message)
     } else if (level === "warning") {
       console.warn(prefix, message)
-    } else {
-      console.log(prefix, message)
     }
   }, [])
 
@@ -199,7 +197,7 @@ export function useMintInvoice() {
     setForcedReceipt(null)
     lastHashRef.current = null
     lastForceCheckHashRef.current = null
-  }, [hash])
+  }, [hash, appendMintLog])
 
   useEffect(() => {
     if (isPending && !lastPendingRef.current) {
@@ -210,7 +208,7 @@ export function useMintInvoice() {
     if (!isPending) {
       lastPendingRef.current = false
     }
-  }, [isPending])
+  }, [isPending, appendMintLog])
 
   useEffect(() => {
     if (isConfirming && !lastConfirmingRef.current) {
@@ -221,13 +219,13 @@ export function useMintInvoice() {
     if (!isConfirming) {
       lastConfirmingRef.current = false
     }
-  }, [isConfirming])
+  }, [isConfirming, appendMintLog])
 
   useEffect(() => {
     if (confirmationTimedOut) {
       appendMintLog("warning", "transaction still pending after 3 min — use 'force settle' to check manually")
     }
-  }, [confirmationTimedOut])
+  }, [confirmationTimedOut, appendMintLog])
 
   const forceSettle = useCallback(async () => {
     if (!hash || !publicClient || isForceChecking) {
@@ -297,7 +295,7 @@ export function useMintInvoice() {
     if (!message) {
       lastErrorRef.current = null
     }
-  }, [error])
+  }, [error, appendMintLog])
 
   useEffect(() => {
     if (!confirmationStartedAt || isSuccess || !isConfirming) {
@@ -453,7 +451,7 @@ export function usePayInvoice() {
 
   const { writeContract, data: hash, isPending, error } = useWriteContract()
 
-  const { isLoading: isConfirming, isSuccess, data: receipt } = useWaitForTransactionReceipt({
+  const { isLoading: isConfirming, isSuccess } = useWaitForTransactionReceipt({
     hash,
   })
 

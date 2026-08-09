@@ -1,7 +1,7 @@
 'use client'
 
 import * as React from 'react'
-import { useEffect, useState, useRef, useCallback } from 'react'
+import { useEffect, useState, useCallback } from 'react'
 import { cn } from '@/lib/utils'
 import { usePublicClient } from 'wagmi'
 
@@ -12,12 +12,10 @@ interface StatusBarProps extends React.HTMLAttributes<HTMLDivElement> {
 
 function StatusBar({
   className,
-  status = 'online',
   network = '',
   ...props
 }: StatusBarProps) {
   const [blockNumber, setBlockNumber] = useState<number | null>(null)
-  const [prevBlockNumber, setPrevBlockNumber] = useState<number | null>(null)
   const [blockUpdated, setBlockUpdated] = useState(false)
   const [latency, setLatency] = useState<number | null>(null)
   const [lastSyncTime, setLastSyncTime] = useState<Date | null>(null)
@@ -48,9 +46,7 @@ function StatusBar({
 
       // Check if block changed
       if (blockNumber !== null && newBlock !== blockNumber) {
-        setPrevBlockNumber(blockNumber)
         setBlockUpdated(true)
-        // Reset the updated flag after animation
         setTimeout(() => setBlockUpdated(false), 600)
       }
 

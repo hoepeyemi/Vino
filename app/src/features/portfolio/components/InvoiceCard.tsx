@@ -160,7 +160,7 @@ export function InvoiceCard({ tokenId, onRefresh }: InvoiceCardProps) {
   if (!invoice) return null;
 
   const dueDate = new Date(Number(invoice.dueDate) * 1000);
-  const daysUntilDue = Math.ceil((dueDate.getTime() - Date.now()) / (1000 * 60 * 60 * 24));
+  const _daysUntilDue = Math.ceil((dueDate.getTime() - Date.now()) / (1000 * 60 * 60 * 24));
   const isInYield = deposit?.active;
   const statusName = InvoiceStatusNames[invoice.status] || 'Unknown';
 
