@@ -153,6 +153,10 @@ export async function queryAPass(
 /**
  * Freeze (status=2) or activate (status=1) an A-Pass (POST /update_status).
  * Provide either customerId or cvRecordId to identify the record.
+ *
+ * TODO: call this when invoices are settled (status=2 to freeze) or revoked
+ * (status=1 to re-activate) so the A-Pass lifecycle stays in sync with the
+ * on-chain invoice state tracked by InvoiceNFT.updateStatus().
  */
 export async function updateStatus(params: {
   walletAddress: string

@@ -3,6 +3,7 @@
 import { BlockchainService, ContractAddresses } from './blockchain.js';
 import { LLMService } from './llm.js';
 import { AgentWebSocket } from './websocket.js';
+import { queryAPass, isConfigured as isCleanverseConfigured } from './cleanverse.js';
 import {
   analyzeInvoice,
   applyMarketAdjustment,
@@ -453,6 +454,38 @@ export class VinoAgent {
 
       const isDeposited = deposit !== null;
       const regime = getCurrentRegime();
+
+      // ── CVA gate: verify_apass before each strategy cycle (Cleanverse API) ──
+      // Only check when Cleanverse is configured and the invoice is in vault —
+      // uneposited invoices haven't yet reached the settlement layer.
+      if (isDeposited && isCleanverseConfigured()) {
+        try {
+          const apass = await queryAPass(deposit!.owner);
+          const cvaEligible = apass !== null && apass.status === 1;
+          this.broadcastThought({
+            type: 'thinking',
+            tokenId,
+            message: cvaEligible
+              ? `✅ CVA gate: ${deposit!.owner.slice(0, 8)}… A-Pass active (Tier ${apass!.tier})`
+              : `⚠️ CVA gate: ${deposit!.owner.slice(0, 8)}… A-Pass inactive or missing`,
+            timestamp: Date.now(),
+            data: { cvaEligible, tier: apass?.tier },
+          });
+          if (!cvaEligible) {
+            // A-Pass not active — hold strategy for this deposit until eligibility is restored.
+            this.broadcastThought({
+              type: 'decision',
+              tokenId,
+              message: `🔒 CVA hold: depositor not eligible — forcing Hold strategy`,
+              timestamp: Date.now(),
+            });
+            return null;
+          }
+        } catch (err) {
+          // Cleanverse API unavailable — continue without blocking; log and proceed.
+          console.warn(`[agent] CVA gate skipped for #${tokenId}:`, (err as Error).message);
+        }
+      }
 
       this.broadcastThought({
         type: 'thinking',

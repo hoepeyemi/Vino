@@ -381,7 +381,7 @@ function MintInvoiceContent() {
             </div>
 
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
-              <Link href={`/dashboard/invoice/${mintedTokenId}`}>
+              <Link href={mintedTokenId ? `/dashboard/invoice/${mintedTokenId}` : '/dashboard'}>
                 <Button>
                   open invoice
                   <ArrowRight className="w-4 h-4" />

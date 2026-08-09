@@ -11,8 +11,7 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { StatusBar } from "@/components/ui/status-bar"
 import { TerminalNav } from "@/components/terminal-nav"
-
-const MOCK_CVI_ADDRESS = process.env.NEXT_PUBLIC_MOCK_CVI_ADDRESS ?? "0x98DbA1d179b013342C2f63Ef551Cf72de4bb64e3"
+import { getMockCVIAddress } from "@/lib/contracts/addresses"
 const EXPLORER = "https://testnet.monadexplorer.com"
 
 type CheckResult  = { verified: boolean; owner: string } | null
@@ -37,6 +36,9 @@ export default function AdminPage() {
   const { address, isConnected } = useAccount()
   const chainId = useChainId()
   const { signMessageAsync } = useSignMessage()
+
+  // Resolve MockCVI address from shared addresses module — picks up env var or chain default.
+  const MOCK_CVI_ADDRESS = getMockCVIAddress(chainId)
 
   const [walletInput, setWalletInput]   = useState("")
   const [checking, setChecking]         = useState(false)

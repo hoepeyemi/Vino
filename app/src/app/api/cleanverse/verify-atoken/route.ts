@@ -30,6 +30,11 @@ import {
 // 30 eligibility checks per address per hour
 const rl = new RateLimiter(30, 3_600_000)
 
+// 5-minute TTL cache — eliminates redundant Cleanverse + RPC calls on every page load.
+// Key: `${address.toLowerCase()}:${atoken.toLowerCase()}`
+const TTL_MS = 5 * 60 * 1_000
+const eligibilityCache = new Map<string, { result: { verified: boolean; source?: string }; expiresAt: number }>()
+
 const MOCK_CVI_ADDRESS = DEFAULT_MOCK_CVI_ADDRESS as Address
 const RPC_URL          = DEFAULT_RPC_URL
 
@@ -81,6 +86,13 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ verified: false, reason: 'rate_limited' }, { status: 429 })
   }
 
+  // ── TTL cache — serve cached result when fresh ───────────────────────────────
+  const cacheKey = `${address.toLowerCase()}:${atoken.toLowerCase()}`
+  const cached = eligibilityCache.get(cacheKey)
+  if (cached && cached.expiresAt > Date.now()) {
+    return NextResponse.json({ ...cached.result, cached: true })
+  }
+
   // ── 1. Try Cleanverse verify_apass ──────────────────────────────────────────
   if (isCleanverseConfigured()) {
     try {
@@ -93,7 +105,9 @@ export async function POST(req: NextRequest) {
       if (raw.ok) {
         const resp = await raw.json() as { code: string; message?: string }
         if (resp.code === '0000') {
-          return NextResponse.json({ verified: true, source: 'cleanverse' })
+          const result = { verified: true, source: 'cleanverse' }
+          eligibilityCache.set(cacheKey, { result, expiresAt: Date.now() + TTL_MS })
+          return NextResponse.json(result)
         }
         // Non-0000 may mean verify_apass is not enabled for this chain on UAT
         // — fall through to on-chain fallback rather than hard-failing.
@@ -109,9 +123,13 @@ export async function POST(req: NextRequest) {
   // CVA A-Tokens — the CVI credential IS the settlement eligibility gate.
   const onChainVerified = await isMockCviVerified(address)
   if (onChainVerified) {
-    return NextResponse.json({ verified: true, source: 'mock-cvi-onchain' })
+    const result = { verified: true, source: 'mock-cvi-onchain' }
+    eligibilityCache.set(cacheKey, { result, expiresAt: Date.now() + TTL_MS })
+    return NextResponse.json(result)
   }
 
-  // Neither Cleanverse nor on-chain CVI verified — wallet is not eligible
+  // Neither Cleanverse nor on-chain CVI verified — wallet is not eligible.
+  // Do not cache negative results — let the next request retry in case the user
+  // completes KYB between page loads.
   return NextResponse.json({ verified: false, reason: 'not_eligible', source: 'local' })
 }

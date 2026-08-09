@@ -75,11 +75,26 @@ export default function Dashboard() {
   // CVA settlement symbol per invoice (tokenId → symbol).
   // Loaded from localStorage in a useEffect — never called synchronously in render.
   const [invoiceCvaMap, setInvoiceCvaMap] = useState<Record<string, string>>({})
+  // Agent WebSocket health — polled once on mount via /ws/health HTTP endpoint.
+  const [agentOnline, setAgentOnline] = useState(false)
 
   const { isConnected } = useAccount()
   const { totalInvoices } = useInvoiceNFT()
   const { tvl, activeDepositsCount, conservativeAPY, aggressiveAPY } = useYieldVault()
   const { state: cviState } = useCleanverseCVI()
+
+  // One-shot agent health check — converts wss://host/ws → https://host/ws/health.
+  // Determines whether the footer shows "agent monitoring" (green) or "agent offline" (grey).
+  useEffect(() => {
+    const wsUrl = process.env.NEXT_PUBLIC_AGENT_WS_URL || ''
+    if (!wsUrl) return
+    const healthUrl = wsUrl.replace(/^wss?:\/\//, 'https://').replace(/^http:\/\//, 'http://') + '/health'
+    let active = true
+    fetch(healthUrl, { signal: AbortSignal.timeout(3_000) })
+      .then(r => { if (active) setAgentOnline(r.ok) })
+      .catch(() => { if (active) setAgentOnline(false) })
+    return () => { active = false }
+  }, [])
 
   const fetchInvoices = useCallback(async () => {
     // The /api/invoices endpoint reads public on-chain data — no wallet needed.
@@ -132,7 +147,8 @@ export default function Dashboard() {
     } finally {
       setIsLoading(false)
     }
-  }, [conservativeAPY, aggressiveAPY])
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
 
   useEffect(() => {
     fetchInvoices()
@@ -429,8 +445,8 @@ export default function Dashboard() {
             <div className="flex items-center justify-between px-4 py-3 border-t border-[#1f1f1f] bg-[#111111] text-[11px] text-[#666666]">
               <span>{filteredInvoices.length} invoice{filteredInvoices.length !== 1 ? "s" : ""} | {totalInvoices} total minted</span>
               <span className="flex items-center gap-1.5">
-                <span className="w-1.5 h-1.5 rounded-full bg-[#10b981] status-pulse" />
-                agent monitoring
+                <span className={`w-1.5 h-1.5 rounded-full ${agentOnline ? 'bg-[#10b981] status-pulse' : 'bg-[#444444]'}`} />
+                {agentOnline ? 'agent monitoring' : 'agent offline'}
               </span>
             </div>
           )}

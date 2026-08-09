@@ -185,7 +185,7 @@ async function main() {
     console.error('See .env.example for reference.');
     process.exit(1);
   }
-  console.log('  x402 AI-Managed B2B Payments');
+  console.log('  vino — AI-Managed Invoice Yield · Monad × Cleanverse');
   console.log('');
   console.log('='.repeat(60));
   console.log(`  📡 RPC: ${RPC_URL}`);

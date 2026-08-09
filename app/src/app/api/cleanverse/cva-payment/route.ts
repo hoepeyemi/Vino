@@ -40,8 +40,8 @@ import {
 const INVOICE_NFT_ADDRESS = process.env.NEXT_PUBLIC_INVOICE_NFT_ADDRESS ?? ''
 const MONAD_EXPLORER      = 'https://testnet.monadexplorer.com'
 
-// 5 payment requests per address per hour
-const rl = new RateLimiter(5, 3_600_000)
+// 20 payment requests per address per hour (raised for demo/judge traffic)
+const rl = new RateLimiter(20, 3_600_000)
 
 interface PaymentRequestBody {
   tokenId: string

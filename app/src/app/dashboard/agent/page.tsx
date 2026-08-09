@@ -352,6 +352,25 @@ export default function AgentPage() {
               </div>
             </div>
           </div>
+          {wsStatus !== 'connected' && (
+            <div className="px-4 py-2 border-b border-[#1a1a1a] bg-[#0a0a0a] flex items-center gap-2 text-[10px] text-[#666666]">
+              <span className="w-1.5 h-1.5 rounded-full bg-[#444444] shrink-0" />
+              <span>
+                Agent WebSocket offline — feed is simulated.
+                Start the agent:{' '}
+                <code className="font-mono text-[#555555]">docker start vino-agent</code>
+                {' '}or check{' '}
+                <a
+                  href="https://dkwc0vn4y827h.cloudfront.net/ws/health"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-[#10b981] hover:underline"
+                >
+                  /ws/health ↗
+                </a>
+              </span>
+            </div>
+          )}
           <div className="p-4 text-[12px]">
             <LiveAgentLog
               maxEntries={8}
