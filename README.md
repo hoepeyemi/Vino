@@ -1,4 +1,4 @@
-# vino — AI-Managed Invoice Yield with Cleanverse CVI + CVA Compliance
+# vino — AI-Managed Invoice Yield with Cleanverse CVI & CVA Compliance
 
 > **Hackathon Build · Monad Testnet × Cleanverse**
 
