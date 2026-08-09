@@ -1,0 +1,435 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>vino — Technical Brief</title>
+<style>
+/* ── Tokens ──────────────────────────────────────────────── */
+:root {
+  --paper:      #F7F5F0;
+  --ink:        #18181A;
+  --ink-mid:    #5A5A62;
+  --ink-faint:  #A4A4AE;
+  --rule:       #D6D4CE;
+  --accent:     #10B981;
+  --mono:       "SF Mono","Cascadia Code","Fira Code","Consolas","Courier New",monospace;
+  --sans:       -apple-system,BlinkMacSystemFont,"Segoe UI",system-ui,sans-serif;
+  --serif:      Georgia,"Times New Roman",Times,serif;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --paper:    #131315;
+    --ink:      #E6E5E2;
+    --ink-mid:  #888892;
+    --ink-faint:#44444E;
+    --rule:     #2A2A34;
+  }
+}
+:root[data-theme="light"] {
+  --paper:#F7F5F0; --ink:#18181A; --ink-mid:#5A5A62;
+  --ink-faint:#A4A4AE; --rule:#D6D4CE;
+}
+:root[data-theme="dark"] {
+  --paper:#131315; --ink:#E6E5E2; --ink-mid:#888892;
+  --ink-faint:#44444E; --rule:#2A2A34;
+}
+
+/* ── Base ────────────────────────────────────────────────── */
+*,*::before,*::after { box-sizing:border-box; margin:0; padding:0; }
+html { font-size:16px; }
+body {
+  background: var(--paper);
+  color: var(--ink);
+  font-family: var(--sans);
+  font-size: 14.5px;
+  line-height: 1.72;
+  -webkit-font-smoothing: antialiased;
+  padding: 56px 24px 80px;
+}
+@media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
+
+/* ── Page ────────────────────────────────────────────────── */
+.page {
+  max-width: 680px;
+  margin: 0 auto;
+}
+
+/* ── Masthead ────────────────────────────────────────────── */
+.masthead {
+  border-bottom: 1px solid var(--rule);
+  padding-bottom: 20px;
+  margin-bottom: 36px;
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 20px;
+  flex-wrap: wrap;
+}
+.masthead-class {
+  font-family: var(--mono);
+  font-size: 9.5px;
+  letter-spacing: 0.20em;
+  text-transform: uppercase;
+  color: var(--ink-faint);
+}
+.masthead-meta {
+  font-family: var(--mono);
+  font-size: 9.5px;
+  letter-spacing: 0.10em;
+  color: var(--ink-faint);
+  text-align: right;
+  line-height: 1.8;
+}
+.doc-title {
+  font-family: var(--serif);
+  font-size: 26px;
+  font-weight: 400;
+  line-height: 1.15;
+  color: var(--ink);
+  letter-spacing: -0.01em;
+  margin-top: 18px;
+  margin-bottom: 6px;
+  text-wrap: balance;
+}
+.doc-sub {
+  font-family: var(--mono);
+  font-size: 11px;
+  letter-spacing: 0.07em;
+  color: var(--ink-mid);
+}
+
+/* ── Sections ────────────────────────────────────────────── */
+.section {
+  padding-top: 28px;
+  margin-top: 28px;
+  border-top: 1px solid var(--rule);
+}
+.section-label {
+  font-family: var(--mono);
+  font-size: 9.5px;
+  letter-spacing: 0.20em;
+  text-transform: uppercase;
+  color: var(--accent);
+  margin-bottom: 12px;
+  display: block;
+}
+
+/* ── Body text ───────────────────────────────────────────── */
+p {
+  color: var(--ink-mid);
+  margin-bottom: 0;
+}
+p + p { margin-top: 12px; }
+strong { color: var(--ink); font-weight: 600; }
+
+/* ── Integration list ────────────────────────────────────── */
+.int-list {
+  list-style: none;
+  margin-top: 4px;
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+.int-item {
+  display: grid;
+  grid-template-columns: 26px 1fr;
+  gap: 0 12px;
+  padding: 10px 0;
+  border-bottom: 1px solid var(--rule);
+}
+.int-item:first-child { border-top: 1px solid var(--rule); }
+.int-n {
+  font-family: var(--mono);
+  font-size: 10px;
+  color: var(--ink-faint);
+  padding-top: 2px;
+  font-variant-numeric: tabular-nums;
+}
+.int-body {}
+.int-name {
+  font-family: var(--mono);
+  font-size: 12px;
+  color: var(--ink);
+  margin-bottom: 1px;
+}
+.int-desc {
+  font-size: 13px;
+  color: var(--ink-mid);
+  line-height: 1.55;
+}
+.tag {
+  display: inline-block;
+  font-family: var(--mono);
+  font-size: 9px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  padding: 1px 6px;
+  border: 1px solid var(--rule);
+  border-radius: 2px;
+  color: var(--ink-faint);
+  margin-left: 6px;
+  vertical-align: middle;
+  position: relative;
+  top: -1px;
+}
+.tag-green {
+  border-color: rgba(16,185,129,0.3);
+  color: var(--accent);
+  background: rgba(16,185,129,0.06);
+}
+
+/* ── Contract table ──────────────────────────────────────── */
+.contract-grid {
+  margin-top: 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+.contract-row {
+  display: grid;
+  grid-template-columns: 132px 1fr;
+  gap: 0;
+  padding: 8px 0;
+  border-bottom: 1px solid var(--rule);
+  align-items: baseline;
+}
+.contract-row:first-child { border-top: 1px solid var(--rule); }
+.contract-name {
+  font-family: var(--mono);
+  font-size: 11px;
+  color: var(--ink);
+  white-space: nowrap;
+}
+.contract-addr {
+  font-family: var(--mono);
+  font-size: 11px;
+  color: var(--ink-mid);
+  word-break: break-all;
+  font-variant-numeric: tabular-nums;
+}
+.contract-addr a {
+  color: var(--ink-mid);
+  text-decoration: none;
+  border-bottom: 1px solid var(--rule);
+  transition: color 0.12s, border-color 0.12s;
+}
+.contract-addr a:hover { color: var(--accent); border-color: var(--accent); }
+
+/* ── Chain metadata ──────────────────────────────────────── */
+.chain-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 20px;
+  margin-top: 14px;
+  margin-bottom: 18px;
+}
+.chain-stat {
+  font-family: var(--mono);
+  font-size: 11px;
+  color: var(--ink-mid);
+}
+.chain-stat strong { color: var(--ink); font-weight: 500; }
+
+/* ── Demo link strip ─────────────────────────────────────── */
+.demo-strip {
+  margin-top: 24px;
+  padding-top: 18px;
+  border-top: 1px solid var(--rule);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+.demo-label {
+  font-family: var(--mono);
+  font-size: 9.5px;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--ink-faint);
+}
+.demo-url {
+  font-family: var(--mono);
+  font-size: 12px;
+  color: var(--accent);
+  text-decoration: none;
+  border-bottom: 1px solid rgba(16,185,129,0.3);
+  transition: border-color 0.12s;
+}
+.demo-url:hover { border-color: var(--accent); }
+</style>
+</head>
+<body>
+<div class="page">
+
+  <!-- Masthead -->
+  <div class="masthead">
+    <div>
+      <div class="masthead-class">Technical Brief &nbsp;·&nbsp; One-Page Summary</div>
+      <h1 class="doc-title">vino — AI-Managed Invoice Yield Protocol</h1>
+      <div class="doc-sub">Monad Testnet &nbsp;×&nbsp; Cleanverse CVI/CVA &nbsp;·&nbsp; Hackathon Build, Aug 2026</div>
+    </div>
+    <div class="masthead-meta">
+      Cleanverse Build: Trusted Assets<br>
+      Track 01 · RWA<br>
+      Aug 8–9 2026
+    </div>
+  </div>
+
+  <!-- Problem -->
+  <div class="section">
+    <span class="section-label">Problem</span>
+    <p>
+      Small and medium enterprises issue invoices and wait 30–90 days for payment, locking working capital
+      they cannot redeploy. The APAC trade finance gap reached <strong>$2.5 trillion</strong> in 2022
+      (Asian Development Bank), driven by bank rejection rates above 40% for SME applicants.
+    </p>
+    <p>
+      Existing on-chain invoice protocols address the yield opportunity but not the compliance requirement.
+      Without KYB identity verification, verified-asset settlement, and Travel Rule reporting,
+      they are inaccessible to regulated institutions and their enterprise clients — the very buyers
+      whose purchasing volume creates the financing demand.
+    </p>
+  </div>
+
+  <!-- Solution -->
+  <div class="section">
+    <span class="section-label">Solution</span>
+    <p>
+      vino tokenizes B2B invoices as ERC-721 NFTs on Monad — storing only a
+      <code style="font-family:var(--mono);font-size:12px;color:var(--ink)">keccak256(data + salt)</code>
+      commitment on-chain, with no plaintext invoice data on the public ledger. Each NFT is deposited
+      into a yield vault with three strategy tiers: <strong>Hold</strong> (0%),
+      <strong>Conservative</strong> (3.5% APY), and <strong>Aggressive</strong> (7% APY).
+    </p>
+    <p>
+      An autonomous AI agent — MemoriVault — selects and executes the optimal strategy per invoice
+      every five minutes, guided by on-chain risk scores, market regime analysis, Qwen 70B reasoning,
+      and a three-tier hierarchical memory (L1 working context · L2 episodic RAG · L3 distilled rules).
+      Every deposit, strategy decision, and settlement is gated by Cleanverse
+      <strong>CVI</strong> (Verified Identity) and <strong>CVA</strong> (Verified Assets),
+      and every cross-border transfer auto-generates a <strong>FATF Rec-16 Travel Rule</strong> report
+      from the mint transaction hash — no manual data entry required.
+    </p>
+  </div>
+
+  <!-- CVI/CVA Integration Points -->
+  <div class="section">
+    <span class="section-label">CVI · CVA Integration Points</span>
+    <ol class="int-list">
+      <li class="int-item">
+        <div class="int-n">01</div>
+        <div class="int-body">
+          <div class="int-name">generate_apass <span class="tag">AES-CBC</span></div>
+          <div class="int-desc">KYB registration — customerId, wallet address, chain, expiry. Returns <code style="font-family:var(--mono);font-size:11px">cvRecordId</code> displayed in the compliance audit trail as the Cleanverse proof anchor. Called at Step 1 of the onboard flow.</div>
+        </div>
+      </li>
+      <li class="int-item">
+        <div class="int-n">02</div>
+        <div class="int-body">
+          <div class="int-name">query_apass <span class="tag">Plain JSON</span></div>
+          <div class="int-desc">Real-time A-Pass status check — called on every page load via <code style="font-family:var(--mono);font-size:11px">useCleanverseCVI()</code>. Returns tier, status, expiry. Drives the KYB gate on mint, deposit, and settlement; renders as the CVI banner in the nav.</div>
+        </div>
+      </li>
+      <li class="int-item">
+        <div class="int-n">03</div>
+        <div class="int-body">
+          <div class="int-name">MockCVI.verify() <span class="tag tag-green">On-chain · Monad</span></div>
+          <div class="int-desc">On-chain CVI relay — the onboard API calls <code style="font-family:var(--mono);font-size:11px">MockCVI.verify(wallet)</code> via the relay wallet. The Monad txHash is stored in localStorage as <code style="font-family:var(--mono);font-size:11px">cviTxHash</code> and surfaced as a clickable Monad Explorer link in the compliance audit trail. <code style="font-family:var(--mono);font-size:11px">isVerified()</code> gates mint and deposit at the contract level.</div>
+        </div>
+      </li>
+      <li class="int-item">
+        <div class="int-n">04</div>
+        <div class="int-body">
+          <div class="int-name">query_deposit_atoken_list <span class="tag">AES-CBC</span></div>
+          <div class="int-desc">Returns CVA-approved settlement tokens — USDC · USDT · EURC — with issuer, <code style="font-family:var(--mono);font-size:11px">kybRequired</code>, and per-wallet eligibility flag. Rendered with a live-vs-demo source badge. Restricts settlement to verified stablecoin assets only.</div>
+        </div>
+      </li>
+      <li class="int-item">
+        <div class="int-n">05</div>
+        <div class="int-body">
+          <div class="int-name">verify_apass <span class="tag">AES-CBC</span></div>
+          <div class="int-desc">Per-wallet × per-token CVA eligibility cross-check. Called on token selection in the UI, and on every 5-minute agent analysis cycle. If a depositor's A-Pass is inactive, the agent forces a Hold strategy for that deposit until eligibility is restored. Fallback: <code style="font-family:var(--mono);font-size:11px">MockCVI.isVerified()</code> on-chain.</div>
+        </div>
+      </li>
+      <li class="int-item">
+        <div class="int-n">06</div>
+        <div class="int-body">
+          <div class="int-name">create_payment_request <span class="tag">AES-CBC</span></div>
+          <div class="int-desc">Generates CVA-verified settlement instructions — invoiceNFT tokenId, CVA asset, amount, issuer address. Returns <code style="font-family:var(--mono);font-size:11px">send_to</code> address and compliance note. Source badge displayed: <em>✓ Cleanverse API</em> or <em>local format</em> on fallback.</div>
+        </div>
+      </li>
+      <li class="int-item">
+        <div class="int-n">07</div>
+        <div class="int-body">
+          <div class="int-name">download_travel_rule <span class="tag">AES-CBC</span></div>
+          <div class="int-desc">Generates the FATF Recommendation 16 Travel Rule compliance report. The mint transaction hash is auto-populated from localStorage — no manual data entry. Inline preview shows originator, beneficiary, CVA settlement asset, and compliance note. Downloadable as JSON. Mandatory for Singapore MAS PSN02 and HKMA VASP compliance.</div>
+        </div>
+      </li>
+    </ol>
+  </div>
+
+  <!-- Deployed Chain -->
+  <div class="section">
+    <span class="section-label">Deployed Chain</span>
+
+    <div class="chain-meta">
+      <span class="chain-stat"><strong>Monad Testnet</strong></span>
+      <span class="chain-stat">Chain ID <strong>10143</strong></span>
+      <span class="chain-stat">Finality <strong>~0.5 s</strong></span>
+      <span class="chain-stat">Throughput <strong>10,000 TPS</strong></span>
+      <span class="chain-stat">Deployed <strong>2026-07-30</strong></span>
+    </div>
+
+    <div class="contract-grid">
+      <div class="contract-row">
+        <span class="contract-name">MockCVI</span>
+        <span class="contract-addr">
+          <a href="https://testnet.monadexplorer.com/address/0x98DbA1d179b013342C2f63Ef551Cf72de4bb64e3" target="_blank" rel="noopener">0x98DbA1d179b013342C2f63Ef551Cf72de4bb64e3</a>
+        </span>
+      </div>
+      <div class="contract-row">
+        <span class="contract-name">InvoiceNFT</span>
+        <span class="contract-addr">
+          <a href="https://testnet.monadexplorer.com/address/0x827f01e7c3111cbB7b690E12B365eC0E14b144f6" target="_blank" rel="noopener">0x827f01e7c3111cbB7b690E12B365eC0E14b144f6</a>
+        </span>
+      </div>
+      <div class="contract-row">
+        <span class="contract-name">YieldVault</span>
+        <span class="contract-addr">
+          <a href="https://testnet.monadexplorer.com/address/0xd4DE5d9DC3fFd4c728dE13aaE57C74628cd441b5" target="_blank" rel="noopener">0xd4DE5d9DC3fFd4c728dE13aaE57C74628cd441b5</a>
+        </span>
+      </div>
+      <div class="contract-row">
+        <span class="contract-name">AgentRouter</span>
+        <span class="contract-addr">
+          <a href="https://testnet.monadexplorer.com/address/0x410494FC48f1cC24904fC3cc57F608ba498b12EA" target="_blank" rel="noopener">0x410494FC48f1cC24904fC3cc57F608ba498b12EA</a>
+        </span>
+      </div>
+      <div class="contract-row">
+        <span class="contract-name">PrivacyRegistry</span>
+        <span class="contract-addr">
+          <a href="https://testnet.monadexplorer.com/address/0x6872DC335eDF9A1525b005c38820641AdF78d9A1" target="_blank" rel="noopener">0x6872DC335eDF9A1525b005c38820641AdF78d9A1</a>
+        </span>
+      </div>
+      <div class="contract-row">
+        <span class="contract-name">MockOracle</span>
+        <span class="contract-addr">
+          <a href="https://testnet.monadexplorer.com/address/0x70231d59379687CaBab203b99481baC7300a19ca" target="_blank" rel="noopener">0x70231d59379687CaBab203b99481baC7300a19ca</a>
+        </span>
+      </div>
+    </div>
+
+    <div class="demo-strip">
+      <span class="demo-label">Live Demo</span>
+      <a class="demo-url" href="https://dkwc0vn4y827h.cloudfront.net" target="_blank" rel="noopener">
+        https://dkwc0vn4y827h.cloudfront.net
+      </a>
+    </div>
+
+  </div>
+
+</div>
+</body>
+</html>

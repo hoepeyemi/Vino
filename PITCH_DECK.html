@@ -1,0 +1,1298 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>vino — Pitch Deck: Asia</title>
+<style>
+/* ─── Tokens ─────────────────────────────────────────────── */
+:root {
+  --bg:          #0B1017;
+  --bg-lift:     #111820;
+  --bg-card:     #141C26;
+  --border:      #1E2A38;
+  --border-mid:  #253347;
+  --text:        #DDE5EE;
+  --text-dim:    #7A919E;
+  --text-faint:  #3D5060;
+  --gold:        #C8912F;
+  --gold-light:  #E2B253;
+  --gold-faint:  rgba(200,145,47,0.10);
+  --green:       #2DB87A;
+  --green-faint: rgba(45,184,122,0.10);
+  --purple:      #836EF9;
+  --red:         #E05252;
+  --serif:       Georgia, "Times New Roman", Times, serif;
+  --sans:        -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;
+  --mono:        "SF Mono","Cascadia Code","Fira Code","Consolas","Courier New",monospace;
+  --max:         860px;
+  --wide:        1100px;
+}
+@media (prefers-color-scheme: light) {
+  :root {
+    --bg:          #F5F2EC;
+    --bg-lift:     #EDE9E0;
+    --bg-card:     #FFFFFF;
+    --border:      #DDD8CF;
+    --border-mid:  #C8C2B6;
+    --text:        #0F1A24;
+    --text-dim:    #5A6878;
+    --text-faint:  #AAA098;
+    --gold:        #A8751A;
+    --gold-light:  #C08D2A;
+    --gold-faint:  rgba(168,117,26,0.08);
+    --green:       #1E9B60;
+    --green-faint: rgba(30,155,96,0.08);
+    --purple:      #5B45D4;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #0B1017; --bg-lift: #111820; --bg-card: #141C26;
+  --border: #1E2A38; --border-mid: #253347;
+  --text: #DDE5EE; --text-dim: #7A919E; --text-faint: #3D5060;
+  --gold: #C8912F; --gold-light: #E2B253; --gold-faint: rgba(200,145,47,0.10);
+  --green: #2DB87A; --green-faint: rgba(45,184,122,0.10); --purple: #836EF9;
+}
+:root[data-theme="light"] {
+  --bg: #F5F2EC; --bg-lift: #EDE9E0; --bg-card: #FFFFFF;
+  --border: #DDD8CF; --border-mid: #C8C2B6;
+  --text: #0F1A24; --text-dim: #5A6878; --text-faint: #AAA098;
+  --gold: #A8751A; --gold-light: #C08D2A; --gold-faint: rgba(168,117,26,0.08);
+  --green: #1E9B60; --green-faint: rgba(30,155,96,0.08); --purple: #5B45D4;
+}
+
+/* ─── Reset & Base ───────────────────────────────────────── */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+html { scroll-behavior: smooth; }
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--sans);
+  font-size: 16px;
+  line-height: 1.6;
+  -webkit-font-smoothing: antialiased;
+}
+a { color: var(--gold); text-decoration: none; }
+a:hover { color: var(--gold-light); }
+p { max-width: 65ch; }
+@media (prefers-reduced-motion: reduce) { * { animation: none !important; transition: none !important; } }
+
+/* ─── Layout ─────────────────────────────────────────────── */
+.container { max-width: var(--max); margin: 0 auto; padding: 0 28px; }
+.container--wide { max-width: var(--wide); margin: 0 auto; padding: 0 28px; }
+
+/* ─── Section rhythm ─────────────────────────────────────── */
+section { padding: 80px 0; border-bottom: 1px solid var(--border); }
+section:last-of-type { border-bottom: none; }
+
+/* ─── Eyebrow ────────────────────────────────────────────── */
+.eyebrow {
+  font-family: var(--mono);
+  font-size: 10px;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--gold);
+  margin-bottom: 18px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.eyebrow::before {
+  content: '';
+  display: block;
+  width: 24px;
+  height: 1px;
+  background: var(--gold);
+  flex-shrink: 0;
+}
+
+/* ─── Headings ───────────────────────────────────────────── */
+.h-display {
+  font-family: var(--serif);
+  font-size: clamp(38px, 6vw, 68px);
+  font-weight: 400;
+  line-height: 1.05;
+  color: var(--text);
+  text-wrap: balance;
+  letter-spacing: -0.02em;
+}
+.h-section {
+  font-family: var(--serif);
+  font-size: clamp(26px, 3.5vw, 38px);
+  font-weight: 400;
+  line-height: 1.15;
+  color: var(--text);
+  text-wrap: balance;
+  letter-spacing: -0.01em;
+  margin-bottom: 20px;
+}
+.h-card {
+  font-family: var(--serif);
+  font-size: 20px;
+  font-weight: 400;
+  line-height: 1.3;
+  color: var(--text);
+  margin-bottom: 8px;
+}
+.h-label {
+  font-family: var(--mono);
+  font-size: 10px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--text-faint);
+  margin-bottom: 6px;
+}
+
+/* ─── Body copy ──────────────────────────────────────────── */
+.lead {
+  font-size: 18px;
+  line-height: 1.65;
+  color: var(--text-dim);
+  max-width: 60ch;
+}
+.body { font-size: 15px; line-height: 1.7; color: var(--text-dim); }
+
+/* ─── Top nav strip ──────────────────────────────────────── */
+.topbar {
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  background: var(--bg);
+  border-bottom: 1px solid var(--border);
+  padding: 0 28px;
+  height: 48px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+.topbar-brand {
+  font-family: var(--mono);
+  font-size: 13px;
+  color: var(--text);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.topbar-brand .v { color: var(--gold); }
+.topbar-dot {
+  width: 6px; height: 6px;
+  border-radius: 50%;
+  background: var(--gold);
+}
+.topbar-nav {
+  display: flex;
+  gap: 24px;
+  list-style: none;
+}
+.topbar-nav a {
+  font-family: var(--mono);
+  font-size: 10px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--text-dim);
+  transition: color 0.15s;
+}
+.topbar-nav a:hover { color: var(--gold); }
+@media (max-width: 600px) { .topbar-nav { display: none; } }
+
+/* ─── Hero ───────────────────────────────────────────────── */
+.hero {
+  padding: 100px 0 80px;
+  border-bottom: 1px solid var(--border);
+  position: relative;
+  overflow: hidden;
+}
+.hero-number {
+  font-family: var(--serif);
+  font-size: clamp(80px, 18vw, 200px);
+  font-weight: 400;
+  line-height: 0.88;
+  color: var(--border-mid);
+  letter-spacing: -0.04em;
+  font-variant-numeric: tabular-nums;
+  user-select: none;
+  position: absolute;
+  right: -20px;
+  top: 40px;
+  pointer-events: none;
+}
+.hero-content { position: relative; z-index: 1; }
+.hero-tagline {
+  font-family: var(--mono);
+  font-size: 11px;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--gold);
+  margin-bottom: 28px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.hero-tagline::after {
+  content: '';
+  flex: 1;
+  max-width: 80px;
+  height: 1px;
+  background: var(--gold);
+}
+.hero-thesis {
+  font-family: var(--serif);
+  font-size: clamp(32px, 5.5vw, 58px);
+  font-weight: 400;
+  line-height: 1.08;
+  color: var(--text);
+  letter-spacing: -0.02em;
+  text-wrap: balance;
+  max-width: 720px;
+  margin-bottom: 28px;
+}
+.hero-thesis em {
+  font-style: italic;
+  color: var(--gold-light);
+}
+.hero-sub {
+  font-size: 16px;
+  color: var(--text-dim);
+  max-width: 58ch;
+  margin-bottom: 44px;
+  line-height: 1.7;
+}
+.hero-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+.chip {
+  font-family: var(--mono);
+  font-size: 10px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  padding: 5px 12px;
+  border: 1px solid var(--border-mid);
+  border-radius: 2px;
+  color: var(--text-dim);
+}
+.chip--gold { border-color: var(--gold); color: var(--gold); }
+.chip--green { border-color: var(--green); color: var(--green); }
+
+/* ─── Stat strip ─────────────────────────────────────────── */
+.stat-strip {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  gap: 0;
+  border: 1px solid var(--border);
+  border-radius: 3px;
+  overflow: hidden;
+  margin-top: 48px;
+}
+.stat-cell {
+  padding: 24px 24px 20px;
+  border-right: 1px solid var(--border);
+}
+.stat-cell:last-child { border-right: none; }
+.stat-num {
+  font-family: var(--mono);
+  font-size: clamp(22px, 3vw, 32px);
+  font-variant-numeric: tabular-nums;
+  color: var(--gold);
+  line-height: 1.1;
+  margin-bottom: 4px;
+}
+.stat-num--green { color: var(--green); }
+.stat-desc {
+  font-family: var(--mono);
+  font-size: 10px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text-faint);
+}
+
+/* ─── Problem ────────────────────────────────────────────── */
+.gap-table { width: 100%; margin-top: 32px; overflow-x: auto; }
+.gap-table table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 14px;
+}
+.gap-table thead th {
+  font-family: var(--mono);
+  font-size: 9px;
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+  color: var(--text-faint);
+  padding: 10px 16px;
+  border-bottom: 1px solid var(--border);
+  text-align: left;
+  white-space: nowrap;
+}
+.gap-table tbody td {
+  padding: 14px 16px;
+  border-bottom: 1px solid var(--border);
+  color: var(--text-dim);
+  vertical-align: top;
+  font-variant-numeric: tabular-nums;
+}
+.gap-table tbody tr:last-child td { border-bottom: none; }
+.gap-table tbody tr:hover td { background: var(--bg-lift); }
+.td-country {
+  font-family: var(--serif);
+  font-size: 15px;
+  color: var(--text);
+  white-space: nowrap;
+}
+.td-gap {
+  font-family: var(--mono);
+  font-size: 14px;
+  color: var(--gold);
+  white-space: nowrap;
+}
+.td-pain {
+  font-size: 13px;
+  color: var(--text-dim);
+  line-height: 1.5;
+}
+
+/* ─── Two-col ─────────────────────────────────────────────── */
+.two-col {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 40px;
+  align-items: start;
+  margin-top: 36px;
+}
+@media (max-width: 680px) { .two-col { grid-template-columns: 1fr; } }
+
+/* ─── Cards ──────────────────────────────────────────────── */
+.card {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 3px;
+  padding: 24px;
+}
+.card-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 16px;
+  margin-top: 32px;
+}
+
+/* ─── CVI/CVA flow ───────────────────────────────────────── */
+.flow-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  margin-top: 28px;
+  border: 1px solid var(--border);
+  border-radius: 3px;
+  overflow: hidden;
+}
+.flow-item {
+  display: grid;
+  grid-template-columns: 48px 1fr auto;
+  gap: 0;
+  border-bottom: 1px solid var(--border);
+  align-items: stretch;
+}
+.flow-item:last-child { border-bottom: none; }
+.flow-num {
+  font-family: var(--mono);
+  font-size: 11px;
+  color: var(--text-faint);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-right: 1px solid var(--border);
+  background: var(--bg-lift);
+  font-variant-numeric: tabular-nums;
+}
+.flow-body {
+  padding: 16px 20px;
+}
+.flow-endpoint {
+  font-family: var(--mono);
+  font-size: 11px;
+  color: var(--gold);
+  margin-bottom: 4px;
+}
+.flow-desc {
+  font-size: 13px;
+  color: var(--text-dim);
+  line-height: 1.5;
+}
+.flow-badge {
+  display: flex;
+  align-items: center;
+  padding: 0 16px;
+  border-left: 1px solid var(--border);
+}
+.badge {
+  font-family: var(--mono);
+  font-size: 9px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  padding: 3px 8px;
+  border-radius: 2px;
+}
+.badge--aes { background: var(--gold-faint); color: var(--gold); border: 1px solid rgba(200,145,47,0.25); }
+.badge--json { background: var(--green-faint); color: var(--green); border: 1px solid rgba(45,184,122,0.25); }
+.badge--chain { background: rgba(131,110,249,0.10); color: var(--purple); border: 1px solid rgba(131,110,249,0.25); }
+
+/* ─── Revenue model ──────────────────────────────────────── */
+.rev-row {
+  display: grid;
+  grid-template-columns: 1fr auto auto;
+  gap: 24px;
+  padding: 18px 0;
+  border-bottom: 1px solid var(--border);
+  align-items: center;
+}
+.rev-row:first-child { border-top: 1px solid var(--border); }
+.rev-stream { font-family: var(--serif); font-size: 16px; color: var(--text); }
+.rev-mkt { font-size: 12px; color: var(--text-dim); margin-top: 2px; }
+.rev-rate {
+  font-family: var(--mono);
+  font-size: 14px;
+  color: var(--gold);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+  text-align: right;
+}
+.rev-tam {
+  font-family: var(--mono);
+  font-size: 13px;
+  color: var(--text-dim);
+  text-align: right;
+  white-space: nowrap;
+}
+
+/* ─── Stack pill row ─────────────────────────────────────── */
+.pill-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 16px;
+}
+.pill {
+  font-family: var(--mono);
+  font-size: 11px;
+  padding: 5px 12px;
+  background: var(--bg-lift);
+  border: 1px solid var(--border);
+  border-radius: 2px;
+  color: var(--text-dim);
+  letter-spacing: 0.04em;
+}
+.pill--gold { border-color: rgba(200,145,47,0.4); color: var(--gold); background: var(--gold-faint); }
+
+/* ─── Code / mono block ──────────────────────────────────── */
+.mono-block {
+  font-family: var(--mono);
+  font-size: 12px;
+  line-height: 1.75;
+  color: var(--text-dim);
+  background: var(--bg-lift);
+  border: 1px solid var(--border);
+  border-radius: 3px;
+  padding: 20px 24px;
+  overflow-x: auto;
+  margin-top: 20px;
+}
+.mono-block .hi { color: var(--gold); }
+.mono-block .dim { color: var(--text-faint); }
+.mono-block .green { color: var(--green); }
+
+/* ─── Divider ────────────────────────────────────────────── */
+.rule {
+  border: none;
+  border-top: 1px solid var(--border);
+  margin: 36px 0;
+}
+
+/* ─── Quote pull ─────────────────────────────────────────── */
+.pull-quote {
+  border-left: 3px solid var(--gold);
+  padding: 4px 0 4px 24px;
+  margin: 36px 0;
+}
+.pull-quote p {
+  font-family: var(--serif);
+  font-size: clamp(18px, 2.5vw, 22px);
+  font-style: italic;
+  color: var(--text);
+  line-height: 1.45;
+  text-wrap: balance;
+}
+.pull-quote cite {
+  display: block;
+  font-family: var(--mono);
+  font-size: 10px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--text-faint);
+  margin-top: 10px;
+  font-style: normal;
+}
+
+/* ─── Milestone timeline ─────────────────────────────────── */
+.timeline {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  margin-top: 32px;
+}
+.tl-item {
+  display: grid;
+  grid-template-columns: 110px 1px 1fr;
+  gap: 0 24px;
+  padding-bottom: 32px;
+  position: relative;
+}
+.tl-item:last-child { padding-bottom: 0; }
+.tl-date {
+  font-family: var(--mono);
+  font-size: 11px;
+  color: var(--text-faint);
+  text-align: right;
+  padding-top: 2px;
+  font-variant-numeric: tabular-nums;
+}
+.tl-line {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+.tl-dot {
+  width: 8px; height: 8px;
+  border-radius: 50%;
+  background: var(--gold);
+  border: 2px solid var(--bg);
+  flex-shrink: 0;
+  margin-top: 4px;
+}
+.tl-dot--done { background: var(--green); }
+.tl-connector {
+  width: 1px;
+  flex: 1;
+  background: var(--border);
+  margin-top: 4px;
+}
+.tl-item:last-child .tl-connector { display: none; }
+.tl-content { padding-top: 0; }
+.tl-title {
+  font-family: var(--serif);
+  font-size: 16px;
+  color: var(--text);
+  margin-bottom: 4px;
+}
+.tl-detail { font-size: 13px; color: var(--text-dim); line-height: 1.6; }
+
+/* ─── Ask ────────────────────────────────────────────────── */
+.ask-box {
+  background: var(--gold-faint);
+  border: 1px solid rgba(200,145,47,0.30);
+  border-radius: 3px;
+  padding: 40px 44px;
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 40px;
+  align-items: center;
+  margin-top: 40px;
+}
+@media (max-width: 680px) { .ask-box { grid-template-columns: 1fr; } }
+.ask-amount {
+  font-family: var(--mono);
+  font-size: clamp(38px, 6vw, 64px);
+  color: var(--gold);
+  font-variant-numeric: tabular-nums;
+  line-height: 1;
+  margin-bottom: 8px;
+}
+.ask-desc { font-size: 14px; color: var(--text-dim); max-width: 42ch; line-height: 1.7; }
+.ask-use { list-style: none; display: flex; flex-direction: column; gap: 12px; }
+.ask-use li {
+  font-size: 13px;
+  color: var(--text-dim);
+  display: grid;
+  grid-template-columns: 12px 1fr;
+  gap: 10px;
+}
+.ask-use li::before {
+  content: '→';
+  font-family: var(--mono);
+  color: var(--gold);
+}
+
+/* ─── CTA button ─────────────────────────────────────────── */
+.cta {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  font-family: var(--mono);
+  font-size: 11px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--bg);
+  background: var(--gold);
+  padding: 12px 24px;
+  border-radius: 2px;
+  transition: background 0.15s;
+  margin-top: 28px;
+}
+.cta:hover { background: var(--gold-light); color: var(--bg); }
+
+/* ─── Footer ─────────────────────────────────────────────── */
+.footer {
+  padding: 32px 28px;
+  border-top: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 16px;
+}
+.footer-brand {
+  font-family: var(--mono);
+  font-size: 12px;
+  color: var(--text-faint);
+}
+.footer-links {
+  display: flex;
+  gap: 20px;
+}
+.footer-links a {
+  font-family: var(--mono);
+  font-size: 10px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--text-faint);
+  transition: color 0.15s;
+}
+.footer-links a:hover { color: var(--gold); }
+
+/* ─── Traction tick list ─────────────────────────────────── */
+.tick-list { list-style: none; display: flex; flex-direction: column; gap: 12px; margin-top: 20px; }
+.tick-list li {
+  display: grid;
+  grid-template-columns: 20px 1fr;
+  gap: 10px;
+  font-size: 14px;
+  color: var(--text-dim);
+  line-height: 1.5;
+}
+.tick-list li::before {
+  content: '✓';
+  font-family: var(--mono);
+  color: var(--green);
+  font-size: 12px;
+  padding-top: 2px;
+}
+</style>
+</head>
+<body>
+
+<!-- Top navigation bar -->
+<header class="topbar">
+  <div class="topbar-brand">
+    <div class="topbar-dot"></div>
+    <span><span class="v">v</span>ino — Asia Pitch Deck</span>
+  </div>
+  <nav>
+    <ul class="topbar-nav">
+      <li><a href="#problem">Problem</a></li>
+      <li><a href="#market">Market</a></li>
+      <li><a href="#solution">Solution</a></li>
+      <li><a href="#compliance">CVI · CVA</a></li>
+      <li><a href="#revenue">Revenue</a></li>
+      <li><a href="#ask">The Ask</a></li>
+    </ul>
+  </nav>
+</header>
+
+<!-- ══════════════════════════════════════════════════════════
+     HERO
+════════════════════════════════════════════════════════════ -->
+<section class="hero" id="top">
+  <div class="container">
+    <div class="hero-number" aria-hidden="true">$2.5T</div>
+    <div class="hero-content">
+      <div class="hero-tagline">vino · B2B Invoice Financing · Monad × Cleanverse</div>
+      <h1 class="hero-thesis">
+        Asia sits on <em>$2.5 trillion</em><br>of locked invoice capital.<br>We put it to work.
+      </h1>
+      <p class="hero-sub">
+        vino is an AI-managed invoice yield protocol where every invoice is tokenized on Monad,
+        yield is autonomously optimized by a compliance-aware agent, and all settlement is gated
+        by Cleanverse CVI + CVA — making it the first institution-ready B2B financing layer for APAC trade.
+      </p>
+      <div class="hero-chips">
+        <span class="chip chip--gold">Track 01 · RWA</span>
+        <span class="chip chip--green">Live on Monad Testnet</span>
+        <span class="chip">7 Cleanverse Endpoints</span>
+        <span class="chip">FATF Travel Rule Compliant</span>
+        <span class="chip">KYB-Gated Mint + Settlement</span>
+      </div>
+
+      <div class="stat-strip">
+        <div class="stat-cell">
+          <div class="stat-num">$2.5T</div>
+          <div class="stat-desc">APAC trade finance gap</div>
+        </div>
+        <div class="stat-cell">
+          <div class="stat-num">80M</div>
+          <div class="stat-desc">unserved Asian SMEs</div>
+        </div>
+        <div class="stat-cell">
+          <div class="stat-num stat-num--green">+7%</div>
+          <div class="stat-desc">aggressive APY on yield vault</div>
+        </div>
+        <div class="stat-cell">
+          <div class="stat-num">~0.5s</div>
+          <div class="stat-desc">Monad finality</div>
+        </div>
+        <div class="stat-cell">
+          <div class="stat-num">7</div>
+          <div class="stat-desc">Cleanverse API endpoints</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ══════════════════════════════════════════════════════════
+     PROBLEM
+════════════════════════════════════════════════════════════ -->
+<section id="problem">
+  <div class="container">
+    <div class="eyebrow">The Problem</div>
+    <h2 class="h-section">Asian SMEs are the engine of regional trade — and they're starved of cash.</h2>
+    <p class="lead">
+      An exporter in Vietnam ships goods to a buyer in Japan. The invoice is net-60. The goods are gone.
+      The cash is locked. The bank demands collateral they don't have.
+      This plays out <strong style="color:var(--text)">800 million times a year</strong> across APAC.
+    </p>
+
+    <div class="pull-quote">
+      <p>"The trade finance gap in Asia-Pacific alone reached $2.5 trillion in 2022 — the largest regional gap globally, driven by SME rejection rates exceeding 40% at traditional banks."</p>
+      <cite>— Asian Development Bank, Trade Finance Gaps Survey 2022</cite>
+    </div>
+
+    <div class="gap-table">
+      <table>
+        <thead>
+          <tr>
+            <th>Market</th>
+            <th>Est. Invoice Gap</th>
+            <th>SME Pain Point</th>
+            <th>Regulatory Signal</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td class="td-country">🇸🇬 Singapore</td>
+            <td class="td-gap">$30B+</td>
+            <td class="td-pain">ASEAN hub; cross-border SME invoices in USD, SGD, USDC — compliance is the bottleneck</td>
+            <td class="td-pain">MAS Sandbox-friendly; Project Guardian tokenised finance</td>
+          </tr>
+          <tr>
+            <td class="td-country">🇭🇰 Hong Kong</td>
+            <td class="td-gap">$65B+</td>
+            <td class="td-pain">China-linked supply chain; USD stablecoin settlement demand; VASP licensing creating compliant moat</td>
+            <td class="td-pain">Project Ensemble; HashKey licensed exchange</td>
+          </tr>
+          <tr>
+            <td class="td-country">🇰🇷 South Korea</td>
+            <td class="td-gap">$40B+</td>
+            <td class="td-pain">K-manufacturing exports (semis, autos, shipbuilding); 30–90 day DSOs standard</td>
+            <td class="td-pain">FSC digital asset framework; Monad Korea community</td>
+          </tr>
+          <tr>
+            <td class="td-country">🇯🇵 Japan</td>
+            <td class="td-gap">$80B+</td>
+            <td class="td-pain">JPY weakness forcing exporters to hold USD receivables; SME digital adoption accelerating post-pandemic</td>
+            <td class="td-pain">2023 Stablecoin Act; JFSA progressive stance</td>
+          </tr>
+          <tr>
+            <td class="td-country">🇻🇳🇮🇩🇹🇭 Southeast Asia</td>
+            <td class="td-gap">$300B+</td>
+            <td class="td-pain">Manufacturing boom (China+1); cross-border SME invoices with no compliant digital settlement rail</td>
+            <td class="td-pain">$300B digital economy 2025 (Google/Temasek/Bain); RCEP trade corridors</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="card-grid" style="margin-top:40px;">
+      <div class="card">
+        <div class="h-label">The Old Path</div>
+        <div class="h-card">Traditional Invoice Factoring</div>
+        <p class="body">3–5% monthly fee. 60-day approval cycles. Opaque pricing. Collateral requirements exclude 80% of SMEs. No audit trail for cross-border FATF compliance.</p>
+      </div>
+      <div class="card">
+        <div class="h-label">The Crypto Gap</div>
+        <div class="h-card">Existing DeFi Protocols</div>
+        <p class="body">No KYB verification. No FATF Travel Rule support. No CVA-verified stablecoin settlement. No institutional compliance layer — DOA for regulated Asian markets.</p>
+      </div>
+      <div class="card">
+        <div class="h-label">The Missing Piece</div>
+        <div class="h-card">Compliant On-Chain Invoice Finance</div>
+        <p class="body">A protocol that combines identity verification (CVI), verified stablecoin settlement (CVA), AI-managed yield, and Travel Rule compliance — on a chain fast enough to handle APAC trade volume.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ══════════════════════════════════════════════════════════
+     MARKET
+════════════════════════════════════════════════════════════ -->
+<section id="market">
+  <div class="container">
+    <div class="eyebrow">Market Opportunity</div>
+    <h2 class="h-section">Asia doesn't need another payments app. It needs a compliance-native yield layer.</h2>
+    <p class="lead">
+      Invoice financing in APAC is a $300B+ serviceable market. Capturing 0.1% of annual invoice volume
+      at a 0.3% protocol fee generates $90M ARR. That's before yield management fees and enterprise licensing.
+    </p>
+
+    <div class="two-col" style="margin-top:40px;">
+      <div>
+        <div class="h-label">TAM / SAM / SOM</div>
+        <div class="mono-block">
+<span class="hi">TAM</span>  $2.5T   APAC trade finance gap
+<span class="hi">SAM</span>  $300B   SME invoice financing, digital-ready
+<span class="hi">SOM</span>  $3B     Year 3 target — Singapore, HK, Korea
+<span class="dim">────────────────────────────────────</span>
+<span class="green">SG</span>   Launch market (MAS Sandbox)
+<span class="green">HK</span>   Year 1 expansion (HashKey / VASP)
+<span class="green">KR</span>   Year 2 (Monad home market)
+<span class="green">JP</span>   Year 2 (Stablecoin Act compliant)
+<span class="green">SEA</span>  Year 3 (RCEP corridors)
+        </div>
+      </div>
+      <div>
+        <div class="h-label">Why Now</div>
+        <ul class="tick-list">
+          <li>Monad's ~0.5s finality and 10k TPS makes real-time trade settlement viable for the first time</li>
+          <li>Cleanverse CVI + CVA gives us the institutional compliance layer that other DeFi protocols lack</li>
+          <li>MAS, HKMA, FSC progressively licensing stablecoin settlement in 2025–2026</li>
+          <li>Post-RCEP: intra-ASEAN trade growing 12% YoY — more invoices, more demand for digital rails</li>
+          <li>USD stablecoin (USDC, USDT) adoption in Asia reached 60M wallets (Chainalysis 2024)</li>
+          <li>ADB now explicitly calling for fintech solutions to close the $2.5T gap</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ══════════════════════════════════════════════════════════
+     SOLUTION
+════════════════════════════════════════════════════════════ -->
+<section id="solution">
+  <div class="container">
+    <div class="eyebrow">The Solution</div>
+    <h2 class="h-section">vino: invoice tokenization with AI-managed yield and built-in institutional compliance.</h2>
+    <p class="lead">
+      An SME in Singapore connects their wallet, passes KYB (Cleanverse CVI), tokenizes their invoice as
+      an ERC-721 NFT on Monad, selects USDC as their CVA settlement asset, and starts earning
+      3.5–7% APY while their customer's payment clears — all with a FATF Rec-16 Travel Rule report auto-generated.
+    </p>
+
+    <div class="mono-block" style="margin-top:32px; margin-bottom:0;">
+<span class="dim">Step 1 · IDENTITY</span>  Wallet connects → <span class="hi">query_apass</span> checks KYB status in real-time
+<span class="dim">            ↓</span>
+<span class="dim">Step 2 · ONBOARD</span>   If unverified → <span class="hi">generate_apass</span> → <span class="hi">MockCVI.verify()</span> on Monad
+<span class="dim">            ↓</span>
+<span class="dim">Step 3 · ASSET</span>     <span class="hi">query_deposit_atoken_list</span> → select USDC / USDT / EURC CVA token
+<span class="dim">            ↓</span>
+<span class="dim">Step 4 · MINT</span>      Invoice NFT minted (ERC-721, keccak256 commitment) — CVI-gated
+<span class="dim">            ↓</span>
+<span class="dim">Step 5 · YIELD</span>     Deposited to YieldVault → AI agent assigns Hold / Conservative / Aggressive
+<span class="dim">            ↓</span>
+<span class="dim">Step 6 · PAYMENT</span>   <span class="hi">create_payment_request</span> → CVA-verified stablecoin settlement instructions
+<span class="dim">            ↓</span>
+<span class="dim">Step 7 · AUDIT</span>     <span class="hi">download_travel_rule</span> → FATF Rec-16 report auto-generated from mint TX
+    </div>
+
+    <div class="card-grid" style="margin-top:40px;">
+      <div class="card">
+        <div class="h-label">InvoiceNFT · ERC-721</div>
+        <div class="h-card">Privacy-preserving tokenization</div>
+        <p class="body">Only <code style="font-family:var(--mono);font-size:11px;color:var(--gold)">keccak256(data + salt)</code> stored on-chain. No plaintext invoice data on the public ledger — PDPA / PIPL compliant for SGP and China cross-border use.</p>
+      </div>
+      <div class="card">
+        <div class="h-label">YieldVault · Aave V3</div>
+        <div class="h-card">AI-managed strategy routing</div>
+        <p class="body">Hold (0%) · Conservative (3.5% APY) · Aggressive (7% APY). Strategy selected per-invoice by the MemoriVault agent based on risk score, market regime, and depositor's CVA eligibility.</p>
+      </div>
+      <div class="card">
+        <div class="h-label">MemoriVault Agent</div>
+        <div class="h-card">Hierarchical memory + Qwen 70B</div>
+        <p class="body">L1 working context · L2 episodic memory (RAG recall) · L3 distilled rules. Calls <code style="font-family:var(--mono);font-size:11px;color:var(--gold)">verify_apass</code> every 5-minute cycle — CVA gate always active at the agent layer.</p>
+      </div>
+      <div class="card">
+        <div class="h-label">AgentRouter · On-chain</div>
+        <div class="h-card">Immutable decision audit trail</div>
+        <p class="body">Every AI strategy decision recorded on Monad via <code style="font-family:var(--mono);font-size:11px;color:var(--gold)">recordDecision()</code>. 5-minute cooldown enforced. Pre-flight cooldown check avoids Monad's revert-as-OOG gas waste.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ══════════════════════════════════════════════════════════
+     CVI / CVA
+════════════════════════════════════════════════════════════ -->
+<section id="compliance">
+  <div class="container">
+    <div class="eyebrow">CVI · CVA Integration</div>
+    <h2 class="h-section">Compliance is not a checkbox. It's the product moat.</h2>
+    <p class="lead">
+      Regulated Asian financial institutions cannot touch a DeFi protocol without KYB, AML, and Travel Rule support.
+      vino is the only invoice financing protocol that integrates all three through a live Cleanverse API stack —
+      making it the only option for bank partnerships and institutional distribution in APAC.
+    </p>
+
+    <div class="flow-list">
+      <div class="flow-item">
+        <div class="flow-num">01</div>
+        <div class="flow-body">
+          <div class="flow-endpoint">generate_apass → POST /api/cleanverse/onboard</div>
+          <div class="flow-desc">KYB registration: customerId, wallet, chain, identityData. Returns <code style="font-family:var(--mono);font-size:11px">cvRecordId</code> displayed post-onboard as the Cleanverse proof link. Linked to MockCVI.verify() on-chain tx for dual-layer CVI proof.</div>
+        </div>
+        <div class="flow-badge"><span class="badge badge--aes">AES-CBC</span></div>
+      </div>
+      <div class="flow-item">
+        <div class="flow-num">02</div>
+        <div class="flow-body">
+          <div class="flow-endpoint">query_apass → every page load · onboard step 2</div>
+          <div class="flow-desc">Real-time A-Pass status check. Returns tier, expiry, status. Renders as "A-Pass · Tier N · expires MMM DD YYYY" in the CVI banner. Drives the KYB gate on mint, deposit, and settlement flows.</div>
+        </div>
+        <div class="flow-badge"><span class="badge badge--json">Plain JSON</span></div>
+      </div>
+      <div class="flow-item">
+        <div class="flow-num">03</div>
+        <div class="flow-body">
+          <div class="flow-endpoint">MockCVI.verify(address) → Monad Testnet tx</div>
+          <div class="flow-desc">On-chain CVI relay: the onboard API calls MockCVI.verify() via the relay wallet. txHash surfaced as clickable Monad Explorer link in the compliance audit trail. isVerified() view function gates mint and deposit at the contract level.</div>
+        </div>
+        <div class="flow-badge"><span class="badge badge--chain">On-chain</span></div>
+      </div>
+      <div class="flow-item">
+        <div class="flow-num">04</div>
+        <div class="flow-body">
+          <div class="flow-endpoint">query_deposit_atoken_list → CVA token selection</div>
+          <div class="flow-desc">Returns USDC · USDT · EURC with issuer, kybRequired, and eligible flag. Each token rendered with a "✓ live Cleanverse" source badge. Restricted to CVA-approved stablecoins — no unverified assets enter the settlement layer.</div>
+        </div>
+        <div class="flow-badge"><span class="badge badge--aes">AES-CBC</span></div>
+      </div>
+      <div class="flow-item">
+        <div class="flow-num">05</div>
+        <div class="flow-body">
+          <div class="flow-endpoint">verify_apass → per-deposit eligibility + agent cycle gate</div>
+          <div class="flow-desc">Cross-validates wallet × CVA token eligibility. Called on token selection UI and on every 5-minute agent analysis cycle. If A-Pass inactive: agent forces Hold strategy. Fallback: MockCVI.isVerified() on-chain. Source always shown.</div>
+        </div>
+        <div class="flow-badge"><span class="badge badge--aes">AES-CBC</span></div>
+      </div>
+      <div class="flow-item">
+        <div class="flow-num">06</div>
+        <div class="flow-body">
+          <div class="flow-endpoint">create_payment_request → CVA-verified settlement</div>
+          <div class="flow-desc">Generates payment instructions: invoiceNft, settlement token, amount, issuerAddress. Returns send_to address, compliance_note, CVA asset. Source badge: "✓ Cleanverse API" vs "local format". Rate-limited to 20 req/hr.</div>
+        </div>
+        <div class="flow-badge"><span class="badge badge--aes">AES-CBC</span></div>
+      </div>
+      <div class="flow-item">
+        <div class="flow-num">07</div>
+        <div class="flow-body">
+          <div class="flow-endpoint">download_travel_rule → FATF Rec-16 report</div>
+          <div class="flow-desc">Generates the FATF Recommendation 16 Travel Rule report. Mint txHash auto-populated from localStorage. Inline preview: originator, beneficiary, CVA settlement asset, compliance note. Downloadable as JSON. Critical for Singapore, Hong Kong, and Korea regulatory requirements.</div>
+        </div>
+        <div class="flow-badge"><span class="badge badge--aes">AES-CBC</span></div>
+      </div>
+    </div>
+
+    <div class="pull-quote" style="margin-top:40px;">
+      <p>"MAS Notice PSN02 and HKMA's VASP licensing both require Travel Rule compliance for virtual asset transfers above $1,000. vino's auto-generated FATF Rec-16 report is the only path to institutional distribution in these markets."</p>
+      <cite>— Regulatory analysis · Singapore MAS Notice PSN02 · HKMA VASP Licensing Conditions</cite>
+    </div>
+  </div>
+</section>
+
+<!-- ══════════════════════════════════════════════════════════
+     REVENUE MODEL
+════════════════════════════════════════════════════════════ -->
+<section id="revenue">
+  <div class="container">
+    <div class="eyebrow">Revenue Model</div>
+    <h2 class="h-section">Four revenue streams. All denominated in compliant stablecoins.</h2>
+    <p class="lead">
+      vino captures value at every layer of the invoice lifecycle — from KYB onboarding through
+      yield management to settlement and compliance reporting. Every revenue stream is CVA-settled
+      in USDC/USDT/EURC, making it directly compatible with APAC regulated entities.
+    </p>
+
+    <div style="margin-top:36px;">
+      <div class="rev-row">
+        <div>
+          <div class="rev-stream">Protocol Fee on Invoice Volume</div>
+          <div class="rev-mkt">Charged at deposit into YieldVault · Singapore, HK, Korea launch markets</div>
+        </div>
+        <div class="rev-rate">0.20–0.50%</div>
+        <div class="rev-tam">TAM $300B SAM</div>
+      </div>
+      <div class="rev-row">
+        <div>
+          <div class="rev-stream">Yield Management Spread</div>
+          <div class="rev-mkt">10% of yield generated · Conservative 3.5% / Aggressive 7% strategies</div>
+        </div>
+        <div class="rev-rate">10% of yield</div>
+        <div class="rev-tam">$35M+ at $500M TVL</div>
+      </div>
+      <div class="rev-row">
+        <div>
+          <div class="rev-stream">KYB-as-a-Service · Enterprise Licensing</div>
+          <div class="rev-mkt">White-label CVI + CVA compliance stack to banks, fintechs, trade platforms · ASEAN</div>
+        </div>
+        <div class="rev-rate">$2K–$20K/mo</div>
+        <div class="rev-tam">B2B SaaS vertical</div>
+      </div>
+      <div class="rev-row">
+        <div>
+          <div class="rev-stream">Travel Rule Report Generation</div>
+          <div class="rev-mkt">Per-report fee for FATF Rec-16 compliance documents · Singapore, HK mandatory</div>
+        </div>
+        <div class="rev-rate">$0.50–$5.00 / report</div>
+        <div class="rev-tam">800M+ APAC tx / yr</div>
+      </div>
+    </div>
+
+    <div class="two-col" style="margin-top:48px;">
+      <div class="card">
+        <div class="h-label">Year 1 · Singapore Launch</div>
+        <div class="mono-block" style="margin-top:12px;padding:16px 20px;">
+<span class="dim">TVL Target</span>      <span class="hi">$5M</span>
+<span class="dim">Invoice Volume</span>  <span class="hi">$12M / quarter</span>
+<span class="dim">Protocol Fee</span>    <span class="hi">$72K ARR</span>
+<span class="dim">Yield Spread</span>    <span class="hi">$35K ARR</span>
+<span class="dim">Enterprise KYB</span>  <span class="hi">2 pilot banks</span>
+<span class="dim">────────────────────────────</span>
+<span class="green">Net Revenue</span>     <span class="green">~$150K ARR</span>
+        </div>
+      </div>
+      <div class="card">
+        <div class="h-label">Year 3 · APAC Scale</div>
+        <div class="mono-block" style="margin-top:12px;padding:16px 20px;">
+<span class="dim">TVL Target</span>      <span class="hi">$500M</span>
+<span class="dim">Markets</span>         <span class="hi">SG · HK · KR · JP · SEA</span>
+<span class="dim">Protocol Fee</span>    <span class="hi">$30M ARR</span>
+<span class="dim">Yield Spread</span>    <span class="hi">$35M ARR</span>
+<span class="dim">Enterprise KYB</span>  <span class="hi">$6M ARR</span>
+<span class="dim">────────────────────────────</span>
+<span class="green">Net Revenue</span>     <span class="green">~$71M ARR</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ══════════════════════════════════════════════════════════
+     TECHNOLOGY
+════════════════════════════════════════════════════════════ -->
+<section id="tech">
+  <div class="container">
+    <div class="eyebrow">Technology</div>
+    <h2 class="h-section">Built for the throughput APAC trade actually demands.</h2>
+    <p class="lead">
+      Monad's 10,000 TPS and ~0.5s finality isn't a marketing claim — it's the prerequisite for
+      real-time invoice settlement across APAC trade corridors where speed is a competitive advantage.
+    </p>
+
+    <div class="two-col" style="margin-top:36px;">
+      <div>
+        <div class="h-label">Chain</div>
+        <div class="mono-block">
+<span class="hi">Monad Testnet</span> · Chain ID 10143
+<span class="dim">TPS:</span>       10,000
+<span class="dim">Finality:</span>  ~0.5 seconds
+<span class="dim">Base fee:</span>  ~100 Gwei (dynamic)
+<span class="dim">Gas formula:</span> baseFee × 1.2 + 1 Gwei
+<span class="dim">            </span>(reads live block.baseFeePerGas)
+        </div>
+        <div class="h-label" style="margin-top:24px;">Contracts Deployed</div>
+        <div class="mono-block">
+<span class="dim">MockCVI</span>         <span class="hi">0x98DbA1…b64e3</span>
+<span class="dim">InvoiceNFT</span>      <span class="hi">0x827f01…144f6</span>
+<span class="dim">YieldVault</span>      <span class="hi">0xd4DE5d…441b5</span>
+<span class="dim">AgentRouter</span>     <span class="hi">0x410494…12EA</span>
+<span class="dim">PrivacyRegistry</span> <span class="hi">0x6872DC…d9A1</span>
+        </div>
+      </div>
+      <div>
+        <div class="h-label">Agent Architecture</div>
+        <div class="mono-block">
+<span class="hi">MemoriVault</span> · Hierarchical Memory
+
+L1  In-process Map
+    Active context, market regime
+    Cycle-scoped
+
+L2  JSON episodic store (→ PostgreSQL)
+    Past decisions, outcomes
+    Qwen text-embedding-v3 · 1024-dim
+    RAG cosine recall
+
+L3  Distilled semantic rules
+    Pattern-extracted from L2
+    Persistent across restarts
+
+<span class="dim">LLM:</span>  Qwen 70B (Alibaba Cloud)
+<span class="dim">Cycle:</span> 5 min · nonce-mutex serialized
+<span class="dim">Gate:</span>  verify_apass per deposit cycle
+        </div>
+        <div class="pill-row">
+          <span class="pill">Next.js 15</span>
+          <span class="pill">Node.js Agent</span>
+          <span class="pill">Hardhat</span>
+          <span class="pill">wagmi / viem</span>
+          <span class="pill pill--gold">Cleanverse API v5.6</span>
+          <span class="pill">Qwen Cloud</span>
+          <span class="pill">Docker</span>
+          <span class="pill">AWS CloudFront</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ══════════════════════════════════════════════════════════
+     TRACTION
+════════════════════════════════════════════════════════════ -->
+<section id="traction">
+  <div class="container">
+    <div class="eyebrow">Traction</div>
+    <h2 class="h-section">Live in 48 hours. Compliance-grade in production.</h2>
+    <p class="lead">
+      Built during the Cleanverse hackathon (Aug 8–9). Deployed on Monad Testnet with all 7 Cleanverse
+      endpoints live and 5 active invoice deposits generating yield.
+    </p>
+
+    <div class="two-col" style="margin-top:36px;">
+      <ul class="tick-list">
+        <li>Live demo deployed: <a href="https://dkwc0vn4y827h.cloudfront.net" target="_blank">dkwc0vn4y827h.cloudfront.net</a></li>
+        <li>5 invoices active on Monad Testnet, $50K TVL, +$35 accrued yield (live)</li>
+        <li>All 7 Cleanverse API endpoints integrated and tested (generate_apass → download_travel_rule)</li>
+        <li>MockCVI.verify() on-chain relay live — txHash surfaced in compliance audit trail</li>
+        <li>FATF Rec-16 Travel Rule report auto-generation working end-to-end</li>
+        <li>AI agent (MemoriVault) running 5-min analysis cycles with on-chain decision recording</li>
+        <li>0 TypeScript errors · 0 ESLint warnings across 15K+ line monorepo</li>
+        <li>CI/CD pipeline: Test → Docker Build+Push → SSH Deploy on every push to main</li>
+      </ul>
+
+      <div>
+        <div class="h-label">Roadmap</div>
+        <div class="timeline">
+          <div class="tl-item">
+            <div class="tl-date">Aug 2026</div>
+            <div class="tl-line"><div class="tl-dot tl-dot--done"></div><div class="tl-connector"></div></div>
+            <div class="tl-content">
+              <div class="tl-title">Hackathon MVP</div>
+              <div class="tl-detail">7 Cleanverse endpoints · Monad Testnet · AI agent · Travel Rule live</div>
+            </div>
+          </div>
+          <div class="tl-item">
+            <div class="tl-date">Q4 2026</div>
+            <div class="tl-line"><div class="tl-dot"></div><div class="tl-connector"></div></div>
+            <div class="tl-content">
+              <div class="tl-title">Singapore Pilot</div>
+              <div class="tl-detail">MAS sandbox application · 3 SME pilot customers · USDC CVA settlement live</div>
+            </div>
+          </div>
+          <div class="tl-item">
+            <div class="tl-date">Q2 2027</div>
+            <div class="tl-line"><div class="tl-dot"></div><div class="tl-connector"></div></div>
+            <div class="tl-content">
+              <div class="tl-title">HK + Korea Expansion</div>
+              <div class="tl-detail">HashKey CVA integration · Korean SME corridors · Monad mainnet</div>
+            </div>
+          </div>
+          <div class="tl-item">
+            <div class="tl-date">2028</div>
+            <div class="tl-line"><div class="tl-dot"></div><div class="tl-connector"></div></div>
+            <div class="tl-content">
+              <div class="tl-title">ASEAN + Japan</div>
+              <div class="tl-detail">RCEP corridor coverage · $500M TVL target · KYB-as-a-Service enterprise</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ══════════════════════════════════════════════════════════
+     THE ASK
+════════════════════════════════════════════════════════════ -->
+<section id="ask">
+  <div class="container">
+    <div class="eyebrow">The Ask</div>
+    <h2 class="h-section">We're raising to capture the Singapore window before it closes.</h2>
+    <p class="lead">
+      MAS is actively issuing sandbox licenses for compliant digital asset platforms in 2026.
+      The regulatory window that lets a protocol like vino enter Singapore's institutional market
+      with a compliant first-mover advantage is open — and it won't stay open.
+    </p>
+
+    <div class="ask-box">
+      <div>
+        <div class="ask-amount">$750K</div>
+        <p class="ask-desc">
+          Pre-seed round. SAFE at $6M cap. 18-month runway to Singapore pilot, Monad mainnet deployment,
+          and first enterprise KYB-as-a-Service contract.
+        </p>
+        <a href="https://dkwc0vn4y827h.cloudfront.net" class="cta" target="_blank">
+          View Live Demo →
+        </a>
+      </div>
+      <div>
+        <ul class="ask-use">
+          <li>Monad mainnet deployment and audit ($80K)</li>
+          <li>MAS sandbox licensing and legal in Singapore ($120K)</li>
+          <li>Cleanverse production API integration and full CVA support ($60K)</li>
+          <li>3 Singapore SME pilot customers and go-to-market ($150K)</li>
+          <li>Engineering team: 2 additional full-stack + 1 compliance ($340K)</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="card-grid" style="margin-top:40px;">
+      <div class="card">
+        <div class="h-label">Why Asia First</div>
+        <div class="h-card">Largest gap, fastest regulation</div>
+        <p class="body">APAC has the world's largest trade finance gap and the most progressive stablecoin regulatory frameworks going live in 2025–2026. The window is now.</p>
+      </div>
+      <div class="card">
+        <div class="h-label">Why vino Wins</div>
+        <div class="h-card">Compliance is the moat</div>
+        <p class="body">CVI + CVA + Travel Rule is a triple-lock no other DeFi invoice protocol has. Institutional distribution in Singapore and Hong Kong requires all three. We have all three, live.</p>
+      </div>
+      <div class="card">
+        <div class="h-label">Why Now</div>
+        <div class="h-card">Monad mainnet + Cleanverse production</div>
+        <p class="body">Monad mainnet launches in 2026. Cleanverse CVA is live on production. The infrastructure for an institutional-grade APAC invoice yield layer exists today. We are 6 months from revenue.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- Footer -->
+<footer class="footer">
+  <div class="footer-brand">
+    <span style="color:var(--gold)">v</span>ino · AI-Managed Invoice Yield · Monad × Cleanverse
+    · Built at Cleanverse Build: Trusted Assets Hackathon, Aug 2026
+  </div>
+  <div class="footer-links">
+    <a href="https://dkwc0vn4y827h.cloudfront.net" target="_blank">Live Demo</a>
+    <a href="https://github.com/hoepeyemi/Vino" target="_blank">GitHub</a>
+    <a href="https://testnet.monadexplorer.com" target="_blank">Monad Explorer</a>
+  </div>
+</footer>
+</body>
+</html>
