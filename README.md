@@ -146,7 +146,6 @@ saveInvoiceMetadata(tokenId, { settlementToken, settlementSymbol, settlementCont
       ▼
 Download report JSON (mintTxHash auto-populated from localStorage)
 ```
-
 ---
 
 ## System Architecture
