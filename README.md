@@ -8,6 +8,31 @@ vino is a B2B invoice financing protocol where every invoice is tokenized as an 
 
 ---
 
+## Docs
+
+Two standalone HTML files are included in the repo root — no server needed, just open them directly:
+
+| File | Contents |
+|---|---|
+| [`vino-pitch-deck.html`](vino-pitch-deck.html) | Asia investor pitch deck — market opportunity, CVI/CVA integration, revenue model, $750K ask |
+| [`vino-summary.html`](vino-summary.html) | One-page technical brief — problem, solution, 7 CVI/CVA endpoints, deployed contracts |
+
+**Windows**
+```bash
+start vino-pitch-deck.html
+start vino-summary.html
+```
+
+**macOS / Linux**
+```bash
+open vino-pitch-deck.html
+open vino-summary.html
+```
+
+Or double-click either file in your file manager.
+
+---
+
 ## Judging Criteria Mapping
 
 | Criterion | Weight | How vino satisfies it |
