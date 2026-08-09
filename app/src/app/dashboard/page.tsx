@@ -82,12 +82,8 @@ export default function Dashboard() {
   const { state: cviState } = useCleanverseCVI()
 
   const fetchInvoices = useCallback(async () => {
-    if (!isConnected) {
-      setInvoices([])
-      setIsLoading(false)
-      return
-    }
-
+    // The /api/invoices endpoint reads public on-chain data — no wallet needed.
+    // We still call it even when disconnected so invoices are always visible.
     setIsLoading(true)
     setError(null)
 
@@ -97,7 +93,12 @@ export default function Dashboard() {
       })
       const data = await response.json()
 
-      if (data.success && data.data.invoices) {
+      if (!data.success) {
+        // API returned an error response — surface it so it isn't silently swallowed
+        throw new Error(data.error || "API returned an error")
+      }
+
+      if (data.data.invoices) {
         let totalAccrued = 0
         const formattedInvoices: InvoiceDisplay[] = data.data.invoices.map((inv: InvoiceResponse) => {
           const dueDate = new Date(inv.dueDate)
@@ -127,11 +128,11 @@ export default function Dashboard() {
       }
     } catch (err) {
       console.error("Failed to fetch invoices:", err)
-      setError("Failed to load invoices")
+      setError(err instanceof Error ? err.message : "Failed to load invoices")
     } finally {
       setIsLoading(false)
     }
-  }, [isConnected, conservativeAPY, aggressiveAPY])
+  }, [conservativeAPY, aggressiveAPY])
 
   useEffect(() => {
     fetchInvoices()
