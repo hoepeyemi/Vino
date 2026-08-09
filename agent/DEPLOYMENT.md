@@ -1,6 +1,6 @@
 # vino Agent — Production Deployment
 
-The agent is deployed as a Docker container on an Ubuntu server via GitHub Actions. Each push to `main` automatically builds, pushes, and redeploys both the agent and the app.
+The agent is deployed as a Docker container on an Ubuntu EC2 server via GitHub Actions. Each push to `main` automatically builds, pushes, and redeploys both the agent and the app.
 
 ---
 
@@ -8,55 +8,66 @@ The agent is deployed as a Docker container on an Ubuntu server via GitHub Actio
 
 ```
 GitHub push to main
-  → GitHub Actions: build Dockerfile.mcp → push to Docker Hub
-  → SSH to Ubuntu server
-  → pull new image
-  → docker stop/rm vino-agent
-  → docker run vino-agent with ~/vino/.env.agent
-  → wait for /health
+  → Job 1: lint + typecheck + test agent + lint app
+  → Job 2: docker build Dockerfile.mcp → push <user>/vino-agent:latest
+  → Job 3: SSH to Ubuntu server
+           ├── preflight: docker info (fails fast if not in docker group)
+           ├── validate ~/vino/.env.agent exists
+           ├── docker pull vino-agent:latest
+           ├── docker stop/rm vino-agent
+           ├── docker run vino-agent (port 8080, --env-file, volume mount)
+           └── wait for GET /health → 200 (max 2 min)
 ```
 
 ---
 
 ## Prerequisites
 
-- Ubuntu server with Docker installed
+- Ubuntu 22.04 / 24.04 server (EC2 `t3.small` or larger recommended)
 - Docker Hub account
 - GitHub repository with Actions enabled
 
 ---
 
-## One-time server setup
+## One-Time Server Setup
 
-SSH into your server and run:
+SSH into the server and run the setup script:
 
 ```bash
-# Install Docker
-curl -fsSL https://get.docker.com | sh
-sudo usermod -aG docker $USER
-newgrp docker
+bash scripts/server-setup.sh
+```
 
-# Create directories
-mkdir -p ~/vino/agent-data
+Or fetch it directly:
 
-# Create the agent env file (fill in real values)
-cat > ~/vino/.env.agent << 'EOF'
-MONAD_TESTNET_RPC_URL=https://testnet-rpc.monad.xyz
-WS_PORT=8080
-DEPLOYMENT_NETWORK=monadTestnet
-INVOICE_NFT_ADDRESS=0x827f01e7c3111cbB7b690E12B365eC0E14b144f6
-YIELD_VAULT_ADDRESS=0xd4DE5d9DC3fFd4c728dE13aaE57C74628cd441b5
-AGENT_ROUTER_ADDRESS=0x410494FC48f1cC24904fC3cc57F608ba498b12EA
-MOCK_ORACLE_ADDRESS=0x70231d59379687CaBab203b99481baC7300a19ca
-AGENT_PRIVATE_KEY=0x...your-agent-wallet-key...
-QWEN_API_KEY=sk-...your-qwen-key...
-EOF
+```bash
+bash <(curl -fsSL https://raw.githubusercontent.com/hoepeyemi/Vino/main/scripts/server-setup.sh)
+```
 
-# Strip any accidental trailing whitespace (Docker --env-file includes it as part of the value)
-sed -i 's/[[:space:]]*$//' ~/vino/.env.agent
+### What the script does
 
-# Create the Docker network shared by both containers
-docker network create vino-net
+1. Installs Docker (official repo) if not already installed
+2. Adds the current user to the `docker` group
+3. **Exits and asks you to log out + back in** so the group takes effect — then re-run
+4. Creates `~/vino/agent-data/`
+5. Writes `~/vino/.env.app` and `~/vino/.env.agent` stubs with contract addresses pre-filled
+6. Generates an Ed25519 SSH deploy key at `~/.ssh/vino_deploy`
+7. Adds the key to `~/.ssh/authorized_keys`
+8. Opens UFW ports 22 (SSH), 3000 (app), 8080 (agent WebSocket)
+9. Prints the 5 GitHub Secrets you need to add with their values
+
+### After the script
+
+Fill in the blank values:
+
+```bash
+nano ~/vino/.env.agent
+nano ~/vino/.env.app
+```
+
+Strip any accidental trailing whitespace (Docker `--env-file` includes it):
+
+```bash
+sed -i 's/[[:space:]]*$//' ~/vino/.env.agent ~/vino/.env.app
 ```
 
 ---
@@ -68,23 +79,47 @@ Set these in **Settings → Secrets and variables → Actions**:
 | Secret | Value |
 |---|---|
 | `DOCKER_USERNAME` | Your Docker Hub username |
-| `DOCKER_PASSWORD` | Docker Hub password or access token |
-| `SSH_HOST` | Server IP or hostname |
-| `SSH_USERNAME` | SSH user on the server |
-| `SSH_PRIVATE_KEY` | Private key for SSH access |
+| `DOCKER_PASSWORD` | Docker Hub password or access token (hub.docker.com → Account Settings → Security → New Access Token) |
+| `SSH_HOST` | Server public IP (e.g. `54.91.79.0`) |
+| `SSH_USERNAME` | SSH user on the server (e.g. `ubuntu`) |
+| `SSH_PRIVATE_KEY` | Contents of `~/.ssh/vino_deploy` (printed by setup script) |
 
-No contract addresses or private keys go in GitHub secrets — those live in `~/vino/.env.agent` on the server.
+No contract addresses or private keys go in GitHub secrets — those live only in `~/vino/.env.agent` on the server.
 
 ---
 
-## Manual deployment (without CI)
+## Docker Permission Fix
+
+If the CI pipeline fails with:
+
+```
+permission denied while trying to connect to the Docker daemon socket at unix:///var/run/docker.sock
+```
+
+Run on the server:
 
 ```bash
-# On the server
+sudo usermod -aG docker $USER
+```
+
+Then **log out and back in** (or start a new SSH session). The CI pipeline includes a preflight check that fails fast with this exact error message and fix instructions.
+
+---
+
+## Manual Deployment (without CI)
+
+```bash
+# Pull latest image
 docker pull <your-dockerhub-user>/vino-agent:latest
 
+# Stop and remove old container
 docker stop vino-agent 2>/dev/null; docker rm vino-agent 2>/dev/null
 
+# Ensure network and data directory exist
+docker network create vino-net 2>/dev/null || true
+mkdir -p ~/vino/agent-data
+
+# Start agent
 docker run -d \
   --name vino-agent \
   --restart unless-stopped \
@@ -100,25 +135,28 @@ curl http://localhost:8080/health
 
 ---
 
-## Checking logs and status
+## Checking Logs and Status
 
 ```bash
 # Live logs
 docker logs -f vino-agent
 
-# Check env vars loaded correctly
-docker exec vino-agent env | grep -v PRIVATE_KEY
-
-# Verify agent is connected to the right contracts
-docker logs vino-agent 2>&1 | grep "contract\|address\|connected"
+# Check env vars loaded (hides keys)
+docker exec vino-agent env | grep -v PRIVATE_KEY | grep -v API_KEY
 
 # Health check
 curl http://localhost:8080/health
+# → {"status":"healthy","uptime":...,"deposits":5,"lastCycle":"..."}
 
-# WebSocket test (requires wscat)
-npm install -g wscat
+# WebSocket test (requires wscat: npm install -g wscat)
 wscat -c ws://localhost:8080
-# Expect: {"type":"status","payload":{"status":"connected"}}
+# → {"type":"status","payload":{"status":"connected"}}
+
+# Via CloudFront
+wscat -c wss://dkwc0vn4y827h.cloudfront.net/ws
+
+# Check agent memory data
+ls -la ~/vino/agent-data/
 ```
 
 ---
@@ -127,23 +165,23 @@ wscat -c ws://localhost:8080
 
 ### Agent crashes on startup
 
-Check for missing env vars:
-
 ```bash
 docker logs vino-agent 2>&1 | tail -50
 ```
 
-The most common causes:
-- `AGENT_PRIVATE_KEY` is missing or malformed
-- `MONAD_TESTNET_RPC_URL` is unreachable
-- Trailing whitespace in `.env.agent` values — fix with `sed -i 's/[[:space:]]*$//' ~/vino/.env.agent`
+Common causes:
+- `AGENT_PRIVATE_KEY` missing or malformed (must be `0x` + 64 hex chars)
+- `MONAD_TESTNET_RPC_URL` unreachable from the server
+- `QWEN_API_KEY` invalid or quota exceeded
+- Trailing whitespace in `.env.agent` values — fix: `sed -i 's/[[:space:]]*$//' ~/vino/.env.agent`
 
 ### Data not persisting across restarts
 
-Ensure the volume mount is included in the `docker run` command and the host directory exists:
+Check the volume mount is present and the host directory exists:
 
 ```bash
 ls -la ~/vino/agent-data/
+docker inspect vino-agent --format='{{json .Mounts}}' | jq
 ```
 
 ### Agent can't reach the app container
@@ -167,12 +205,18 @@ $HOME/vino/.env.agent
 /home/$USER/vino/.env.agent
 ```
 
+### WebSocket not reachable via CloudFront
+
+Verify the `/ws*` behavior in CloudFront:
+1. Origin must point to EC2 **port 8080** (not the default EC2 origin on 3000)
+2. Cache policy must be **CachingDisabled** (not `UseOriginCacheControlHeaders`)
+3. EC2 security group must allow inbound TCP 8080
+
 ---
 
-## Authorizing the agent wallet on-chain
+## Authorizing the Agent Wallet On-Chain
 
-The agent wallet must be authorized on `AgentRouter` before it can record decisions.
-Run this once after deploying, replacing the addresses with the values from `contracts/deployments/monadTestnet.json`:
+The agent wallet must be authorized on `AgentRouter` before it can record decisions on-chain. Run this **once** after deploying, from the deployer wallet:
 
 ```bash
 cast send 0x410494FC48f1cC24904fC3cc57F608ba498b12EA \
@@ -182,9 +226,15 @@ cast send 0x410494FC48f1cC24904fC3cc57F608ba498b12EA \
   --private-key <DEPLOYER_PRIVATE_KEY>
 ```
 
+To find the agent wallet address from the private key:
+
+```bash
+cast wallet address <AGENT_PRIVATE_KEY>
+```
+
 ---
 
-## Contract addresses (Monad Testnet)
+## Contract Addresses (Monad Testnet)
 
 | Contract | Address |
 |---|---|

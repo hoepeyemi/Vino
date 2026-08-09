@@ -4,6 +4,8 @@
 
 vino is a B2B invoice financing protocol where every invoice is tokenized as an NFT, an AI agent autonomously manages yield strategy, and all settlement is gated by Cleanverse CVI (identity) and CVA (verified asset) verification.
 
+**Live demo:** [https://dkwc0vn4y827h.cloudfront.net](https://dkwc0vn4y827h.cloudfront.net)
+
 ---
 
 ## Judging Criteria Mapping
@@ -107,7 +109,7 @@ saveInvoiceMetadata(tokenId, { settlementToken, settlementSymbol, settlementCont
       │  cviRecordId = Cleanverse A-Pass record ID — links on-chain CVI proof to identity record
       ▼  Invoice Detail page
          Compliance Audit Trail: CVI → Invoice → CVA → Payment → Travel Rule
-         CVI VERIFIED step: record:<cvRecordId> + "MockCVI.verify() ↗" Monad Explorer link
+         CVI VERIFIED step: record:<cvRecordId> + "MockCVI.verify() tx" Monad Explorer link
          CVA Settlement: settlement badge + contract address → Monad Explorer link
       │
 "Request Payment" → POST /api/cleanverse/cva-payment → create_payment_request
@@ -171,6 +173,16 @@ Download report JSON (mintTxHash auto-populated from localStorage)
 │  • CVI gate: MockCVI.isVerified() before each settlement │
 │  • CVA gate: verify_apass eligibility per deposit cycle  │
 └────────────────────────────────────────────────────────────┘
+                          │  WebSocket (wss://)
+┌─────────────────────────▼─────────────────────────────────┐
+│  AWS Infrastructure                                       │
+│  CloudFront Distribution: dkwc0vn4y827h.cloudfront.net   │
+│  ├── /ws*  → EC2:8080  (agent WebSocket, CachingDisabled) │
+│  └── /*    → EC2:3000  (Next.js app, CachingDisabled)    │
+│  EC2 Ubuntu server (54.91.79.0)                          │
+│  ├── vino-app   container on port 3000                   │
+│  └── vino-agent container on port 8080                   │
+└────────────────────────────────────────────────────────────┘
 ```
 
 ---
@@ -178,18 +190,19 @@ Download report JSON (mintTxHash auto-populated from localStorage)
 ## Demo Path (< 5 minutes)
 
 1. **Connect wallet** — MetaMask on Monad Testnet (Chain ID 10143)
-2. **KYB onboard** — click "Complete KYB Verification"
+   - CVI status badge appears automatically via `query_apass`
+2. **KYB onboard** — click "Complete KYB Verification" if not yet verified
    - `generate_apass` → `query_apass` → `MockCVI.verify()` on Monad
    - Banner turns green: Tier, expiry, on-chain tx hash + A-Pass record ID shown
 3. **Mint invoice** — fill client name / amount / due date, select **USDC (CVA)** → mint NFT
 4. **Invoice detail** — Compliance Audit Trail: CVI → Invoice → CVA → Payment → Travel Rule
-   - **CVI VERIFIED** step: `record:<cvRecordId>` + clickable `MockCVI.verify() ↗` Monad Explorer link
+   - **CVI VERIFIED** step: `record:<cvRecordId>` + clickable `MockCVI.verify() tx` Monad Explorer link
    - CVA Settlement panel: USDC badge + Monad Explorer contract link
    - Click **"Request Payment"** → source badge shows `create_payment_request ✓` or `CVA local format`
 5. **Travel Rule** — TX hash is **auto-populated** from mint metadata → click "generate"
    - Source badge: ✓ Cleanverse API or local format
    - Inline FATF Rec-16 preview: originator, beneficiary, CVA asset, compliance note
-6. **Agent page** — Decision Cycle: CVI → CVA → MEM → LLM → GAS; watch strategy execute
+6. **Agent page** — Decision Cycle: CVI → CVA → MEM → LLM → GAS; watch live strategy decisions
 
 ---
 
@@ -206,6 +219,8 @@ Download report JSON (mintTxHash auto-populated from localStorage)
 | `source` field on all fallback-capable routes | Lets the UI show "✓ Cleanverse API" vs "local format" badges — judges and auditors can see exactly which data came from the live Cleanverse backend. |
 | Qwen `text-embedding-v3` (1024-d) | `text-embedding-v2` is not on the free-tier quota. v3 is available and produces high-quality vectors for MemoriVault RAG recall. |
 | localStorage for invoice metadata | On-chain stores only keccak256 commitment. Client-side metadata (CVA token, contract address, `mintTxHash`, `cviTxHash`, `cviRecordId`) persisted by tokenId. `cviTxHash` is the `MockCVI.verify()` Monad tx shown as an Explorer link in the compliance trail; `cviRecordId` is the Cleanverse A-Pass record ID — together they form the end-to-end CVI proof chain. `mintTxHash` auto-populates the Travel Rule form. |
+| `/api/invoices` fetches public chain data | Invoice list is visible without wallet connection — the server-side API route reads public on-chain data. Client wallet is only required for write operations (mint, deposit, settle). |
+| CloudFront + Next.js standalone | CloudFront distributes the app globally. `/ws*` behavior routes agent WebSocket to EC2:8080 with `CachingDisabled`. Default `/*` routes app to EC2:3000. Both use `Managed-AllViewer` origin request policy to forward all headers. |
 
 ---
 
@@ -228,31 +243,78 @@ pnpm start
 
 ### Required env vars
 
-```
+```env
 # Cleanverse
 CLEANVERSE_API_ID=your_institution_id
 CLEANVERSE_API_KEY=base64_encoded_aes_key    # 32-byte key, base64-encoded
+CLEANVERSE_API_URL=https://uatapi.cleanverse.com/api/cooperate
 
 # On-chain relay (MockCVI.verify sender)
 RELAY_PRIVATE_KEY=0x...                       # deployer / CVI admin wallet
 MOCK_CVI_ADDRESS=0x98DbA1d179b013342C2f63Ef551Cf72de4bb64e3
+NEXT_PUBLIC_MOCK_CVI_ADDRESS=0x98DbA1d179b013342C2f63Ef551Cf72de4bb64e3
 
 # Monad Testnet
 NEXT_PUBLIC_MONAD_TESTNET_RPC=https://testnet-rpc.monad.xyz
-NEXT_PUBLIC_INVOICE_NFT_ADDRESS=0x...
-NEXT_PUBLIC_YIELD_VAULT_ADDRESS=0x...
-NEXT_PUBLIC_AGENT_ROUTER_ADDRESS=0x...
+NEXT_PUBLIC_INVOICE_NFT_ADDRESS=0x827f01e7c3111cbB7b690E12B365eC0E14b144f6
+NEXT_PUBLIC_YIELD_VAULT_ADDRESS=0xd4DE5d9DC3fFd4c728dE13aaE57C74628cd441b5
+NEXT_PUBLIC_AGENT_ROUTER_ADDRESS=0x410494FC48f1cC24904fC3cc57F608ba498b12EA
+NEXT_PUBLIC_PRIVACY_REGISTRY_ADDRESS=0x6872DC335eDF9A1525b005c38820641AdF78d9A1
 ```
 
 ---
 
 ## Contracts (Monad Testnet · Chain ID 10143)
 
-See `app/.env` for the live deployed addresses of `InvoiceNFT`, `YieldVault`, `AgentRouter`, and `MockCVI`.
+Deployed `2026-07-30`. Authoritative source: [`contracts/deployments/monadTestnet.json`](contracts/deployments/monadTestnet.json)
 
-| Contract | Role |
-|---|---|
-| `InvoiceNFT` | ERC-721; stores keccak256 data + amount commitments; gated by `MockCVI.isVerified()` |
-| `YieldVault` | Aave V3 strategy router; Hold / Conservative / Aggressive |
-| `AgentRouter` | Records AI decisions on-chain; enforces cooldown + gas caps |
-| `MockCVI` | `isVerified(addr) view` + `verify(addr)` write; owner = relay wallet |
+| Contract | Address | Role |
+|---|---|---|
+| `MockCVI` | `0x98DbA1d179b013342C2f63Ef551Cf72de4bb64e3` | KYB gate — `isVerified(addr)` view + `verify(addr)` write |
+| `InvoiceNFT` | `0x827f01e7c3111cbB7b690E12B365eC0E14b144f6` | ERC-721; keccak256 commitment storage; CVI-gated mint |
+| `YieldVault` | `0xd4DE5d9DC3fFd4c728dE13aaE57C74628cd441b5` | Aave V3 strategy router; Hold / Conservative / Aggressive |
+| `AgentRouter` | `0x410494FC48f1cC24904fC3cc57F608ba498b12EA` | Records AI decisions on-chain; enforces cooldown + gas caps |
+| `PrivacyRegistry` | `0x6872DC335eDF9A1525b005c38820641AdF78d9A1` | Selective disclosure registry |
+| `MockOracle` | `0x70231d59379687CaBab203b99481baC7300a19ca` | Price + risk feeds (Monad testnet Pyth stand-in) |
+
+Explorer: [testnet.monadexplorer.com](https://testnet.monadexplorer.com)
+
+---
+
+## Repository Structure
+
+```
+vino/
+├── app/                    # Next.js 15 frontend
+│   ├── src/app/            # App Router pages + API routes
+│   │   ├── api/cleanverse/ # 7 Cleanverse API proxy routes
+│   │   ├── api/invoices/   # On-chain invoice list (server-side)
+│   │   └── dashboard/      # Portfolio, mint, agent, issuer, admin pages
+│   ├── src/hooks/          # wagmi contract hooks
+│   ├── src/lib/contracts/  # ABIs, addresses, server-side viem client
+│   └── src/features/       # vault deposit modal, portfolio components
+├── agent/                  # MemoriVault AI agent (Node.js)
+│   ├── src/optimizer.ts    # Strategy analysis + on-chain execution
+│   ├── src/llm.ts          # Qwen 70B + text-embedding-v3 integration
+│   ├── src/memory/         # L1/L2/L3 hierarchical memory
+│   └── src/websocket.ts    # WebSocket server (port 8080)
+├── contracts/              # Hardhat workspace
+│   ├── src/                # Solidity contracts
+│   └── deployments/        # monadTestnet.json (authoritative addresses)
+├── scripts/
+│   └── server-setup.sh     # One-shot Ubuntu server setup script
+├── server/
+│   ├── .env.app            # Template for ~/vino/.env.app on server
+│   └── .env.agent          # Template for ~/vino/.env.agent on server
+├── Dockerfile.web          # Next.js app image (standalone)
+├── Dockerfile.mcp          # Agent image
+├── docker-compose.yml      # For manual local / server deployment
+└── .github/workflows/
+    └── ci.yml              # Test → Build+Push → Deploy pipeline
+```
+
+---
+
+## Deployment
+
+See [DEPLOY.md](DEPLOY.md) for the full Ubuntu + Docker + GitHub Actions + CloudFront setup.
