@@ -123,6 +123,14 @@ jobs:
             set -e
             echo "=== Deployment started: $(date -u '+%Y-%m-%d %H:%M:%S UTC') ==="
 
+            # Preflight: confirm Docker is accessible without sudo
+            if ! docker info >/dev/null 2>&1; then
+              echo "ERROR: Cannot reach Docker daemon."
+              echo "       Fix: on the server run  sudo usermod -aG docker \$USER"
+              echo "       then log out and back in, and re-run this pipeline."
+              exit 1
+            fi
+
             APP_DIR="$HOME/vino"
             APP_ENV="$APP_DIR/.env.app"
             AGENT_ENV="$APP_DIR/.env.agent"
