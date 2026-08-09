@@ -185,26 +185,7 @@ Download report JSON (mintTxHash auto-populated from localStorage)
 └────────────────────────────────────────────────────────────┘
 ```
 
----
 
-## Demo Path (< 5 minutes)
-
-1. **Connect wallet** — MetaMask on Monad Testnet (Chain ID 10143)
-   - CVI status badge appears automatically via `query_apass`
-2. **KYB onboard** — click "Complete KYB Verification" if not yet verified
-   - `generate_apass` → `query_apass` → `MockCVI.verify()` on Monad
-   - Banner turns green: Tier, expiry, on-chain tx hash + A-Pass record ID shown
-3. **Mint invoice** — fill client name / amount / due date, select **USDC (CVA)** → mint NFT
-4. **Invoice detail** — Compliance Audit Trail: CVI → Invoice → CVA → Payment → Travel Rule
-   - **CVI VERIFIED** step: `record:<cvRecordId>` + clickable `MockCVI.verify() tx` Monad Explorer link
-   - CVA Settlement panel: USDC badge + Monad Explorer contract link
-   - Click **"Request Payment"** → source badge shows `create_payment_request ✓` or `CVA local format`
-5. **Travel Rule** — TX hash is **auto-populated** from mint metadata → click "generate"
-   - Source badge: ✓ Cleanverse API or local format
-   - Inline FATF Rec-16 preview: originator, beneficiary, CVA asset, compliance note
-6. **Agent page** — Decision Cycle: CVI → CVA → MEM → LLM → GAS; watch live strategy decisions
-
----
 
 ## Key Technical Decisions
 
